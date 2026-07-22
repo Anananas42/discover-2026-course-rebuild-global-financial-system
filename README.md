@@ -1,4 +1,4 @@
-# Rebuild the Banks
+# Rebuild the Global Financial System
 
 Course project. After a global electromagnetic storm wiped out the world's
 financial systems, each participant rebuilds their own country's banking
@@ -132,18 +132,16 @@ authenticated`.
 
 ## 3. Download and start
 
-1. On this repository's GitHub page, click the green **Code** button,
-   pick **SSH**, and copy the address. Then, in the folder where you keep
-   projects:
+1. In the folder where you keep projects:
 
    ```sh
-   git clone <the copied address>
+   git clone git@github.com:Anananas42/discover-2026-course-rebuild-global-financial-system.git
    ```
 
-2. Enter the folder the clone created (its name is the repository's):
+2. Enter the folder the clone created:
 
    ```sh
-   cd <the folder>
+   cd discover-2026-course-rebuild-global-financial-system
    ```
 
    From here you can also open the project in Visual Studio Code straight

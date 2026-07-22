@@ -129,10 +129,10 @@ const CURIOSITIES: Record<CuriosityId, { title: string; body: ReactNode }> = {
           If money is just entries, what stops a bank — or a whole country —
           from typing itself more? Nothing physical: what stops it is law —
           adopted rules, courts, and the politics of what happens to those who
-          break them. A country can, in theory — it just does not end well.
-          And countries do, in effect, print money — but inside rules they
-          adopted and are held to. The same is true of cash: paper is easy to
-          print, and law is why counterfeiting stays rare.
+          break them. A country can, in theory — it just does not end well. And
+          countries do, in effect, print money — but inside rules they adopted
+          and are held to. The same is true of cash: paper is easy to print, and
+          law is why counterfeiting stays rare.
         </p>
       </>
     ),
