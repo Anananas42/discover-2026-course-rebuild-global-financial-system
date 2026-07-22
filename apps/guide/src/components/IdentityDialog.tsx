@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Pencil } from 'lucide-react';
+import type { ReactNode } from 'react';
 
-import { Button } from '@banks/shared/browser/Button.tsx';
 import {
   Dialog,
   DialogContent,
@@ -12,36 +11,26 @@ import {
 import type { CourseConfig } from '../../../shared/course-config.ts';
 import { IdentityForm } from './IdentityForm.tsx';
 
+/** Whether the student has initialized their financial system. */
+export const courseConfigured = (course: CourseConfig) =>
+  Boolean(course.student && course.country && course.currency);
+
+/** The identity dialog, opened by whatever trigger the call site renders:
+ * the header's pencil once configured, the intro's initialize CTA before. */
 export function IdentityDialog({
   course,
   onSaved,
+  trigger,
 }: {
   course: CourseConfig;
   onSaved: () => void;
+  trigger: (open: () => void) => ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const configured = Boolean(
-    course.student && course.country && course.currency
-  );
 
   return (
     <>
-      {configured ? (
-        <Button
-          title="Edit your financial system's configuration"
-          aria-label="Edit your financial system's configuration"
-          onClick={() => setOpen(true)}
-        >
-          <Pencil size={16} />
-        </Button>
-      ) : (
-        <button
-          className="cursor-pointer rounded-md bg-accent-fill px-4 py-1.5 text-sm font-semibold text-accent-ink hover:brightness-110"
-          onClick={() => setOpen(true)}
-        >
-          initialize your financial system
-        </button>
-      )}
+      {trigger(() => setOpen(true))}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogTitle>Your financial system</DialogTitle>

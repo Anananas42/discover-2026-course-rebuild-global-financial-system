@@ -131,6 +131,12 @@ export function TaskList({
   // The first stage with unfinished work is where the student is now.
   const currentStage = stages.find(stage => !isComplete(stage))?.stage;
 
+  // The first incomplete task in teaching order — the one to work on
+  // next; its card highlights the implement button.
+  const nextTaskId = stages
+    .flatMap(stage => stageTasks(stage))
+    .find(task => task.status !== 'passing')?.id;
+
   // The toolbar button collapses everything — or, once everything is
   // collapsed, expands everything.
   const anyOpen = stages.some(
@@ -322,7 +328,11 @@ export function TaskList({
                     key={task.id}
                     className={`pt-4 ${railSegment(index < passedPrefix)}`}
                   >
-                    <TaskCard task={task} onTestsRan={onTestsRan} />
+                    <TaskCard
+                      task={task}
+                      next={task.id === nextTaskId}
+                      onTestsRan={onTestsRan}
+                    />
                   </div>
                 ))}
               </div>

@@ -1,12 +1,17 @@
+import { Pencil } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
+import { Button } from '@banks/shared/browser/Button.tsx';
 import { ThemeToggle } from '@banks/shared/browser/ThemeToggle.tsx';
 import { useTheme } from '@banks/shared/browser/use-theme.ts';
 
 import type { GuideState } from '../guide-contract.ts';
 import { fetchState } from './api.ts';
 import { ErrorAlert } from './components/ErrorAlert.tsx';
-import { IdentityDialog } from './components/IdentityDialog.tsx';
+import {
+  courseConfigured,
+  IdentityDialog,
+} from './components/IdentityDialog.tsx';
 import { ProjectIntro } from './components/ProjectIntro.tsx';
 import { SolarStorm } from './components/SolarStorm.tsx';
 import { SubmitControls } from './components/SubmitControls.tsx';
@@ -67,8 +72,20 @@ export function App() {
                   .join(' · ')}
               </span>
             )}
-            {state && (
-              <IdentityDialog course={state.course} onSaved={refresh} />
+            {state && courseConfigured(state.course) && (
+              <IdentityDialog
+                course={state.course}
+                onSaved={refresh}
+                trigger={open => (
+                  <Button
+                    title="Edit your financial system's configuration"
+                    aria-label="Edit your financial system's configuration"
+                    onClick={open}
+                  >
+                    <Pencil size={16} />
+                  </Button>
+                )}
+              />
             )}
             <ThemeToggle theme={theme} onChange={setTheme} />
           </div>
@@ -76,7 +93,11 @@ export function App() {
         <div className="mx-auto max-w-5xl px-6 py-6">
           <ErrorAlert error={connectionError} className="my-3" />
           {state && (
-            <ProjectIntro financialSystemUrl={state.financialSystemUrl} />
+            <ProjectIntro
+              financialSystemUrl={state.financialSystemUrl}
+              course={state.course}
+              onSaved={refresh}
+            />
           )}
         </div>
       </div>

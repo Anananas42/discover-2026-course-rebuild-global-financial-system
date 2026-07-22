@@ -19,6 +19,7 @@
     "apps/financial-system/server.ts",
     "scripts",
     "playground.ts",
+    "run-tests.ts",
     "submit.ts",
     "vitest.config.ts"
   ],

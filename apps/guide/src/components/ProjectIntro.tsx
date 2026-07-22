@@ -1,12 +1,28 @@
 import { ExternalLink } from 'lucide-react';
 
+import type { CourseConfig } from '../../../shared/course-config.ts';
 import weNeedYou from '../assets/we-need-you.png';
+import { courseConfigured, IdentityDialog } from './IdentityDialog.tsx';
 import { ZoomableImage } from './ZoomableImage.tsx';
+
+// The hero CTA's styling, shared by both of its lives: the initialize
+// button before the student has a financial system, the link to it after.
+// Not the shared Button: its text-sm would win the Tailwind conflict
+// against any size override.
+// The shadow stays out of the shared class: the link carries a plain
+// lift, the initialize button the warn-amber glow that marks the next
+// step everywhere in the guide.
+const CTA_CLASS =
+  'inline-flex cursor-pointer items-center gap-2.5 rounded-xl bg-accent-fill px-8 py-3 text-xl font-semibold text-accent-ink hover:brightness-110';
 
 export function ProjectIntro({
   financialSystemUrl,
+  course,
+  onSaved,
 }: {
   financialSystemUrl: string;
+  course: CourseConfig;
+  onSaved: () => void;
 }) {
   return (
     // The dashboard matrix card's glass, over this page's sky. The hero
@@ -39,19 +55,31 @@ export function ProjectIntro({
         financial system back online. Around you, the rest of the group is doing
         the same: the world comes back one country at a time.
       </p>
-      {/* Not the shared Button: its text-sm would win the Tailwind
-          conflict against any size override. The hero CTA is its own
-          element. */}
       <div className="my-7 flex justify-center">
-        <a
-          href={financialSystemUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-2.5 rounded-xl bg-accent-fill px-8 py-3 text-xl font-semibold text-accent-ink shadow-lg hover:brightness-110"
-        >
-          Financial system
-          <ExternalLink size={22} aria-hidden />
-        </a>
+        {courseConfigured(course) ? (
+          <a
+            href={financialSystemUrl}
+            target="_blank"
+            rel="noreferrer"
+            className={`${CTA_CLASS} shadow-lg`}
+          >
+            Financial system
+            <ExternalLink size={22} aria-hidden />
+          </a>
+        ) : (
+          <IdentityDialog
+            course={course}
+            onSaved={onSaved}
+            trigger={open => (
+              <button
+                className={`${CTA_CLASS} shadow-[0_0_10px] shadow-warn/60`}
+                onClick={open}
+              >
+                Initialize your financial system
+              </button>
+            )}
+          />
+        )}
       </div>
     </section>
   );

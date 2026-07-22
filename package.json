@@ -17,7 +17,7 @@
     "publish-student": "node scripts/publish-student-repo.ts",
     "start": "node apps/guide/start.ts",
     "submit": "node submit.ts",
-    "test": "vitest run",
+    "test": "node run-tests.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p apps/financial-system && tsc --noEmit -p apps/guide"
   },
   "dependencies": {

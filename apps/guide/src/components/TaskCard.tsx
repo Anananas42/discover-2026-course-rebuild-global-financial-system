@@ -28,8 +28,9 @@ import {
 } from './Curiosities.tsx';
 
 // One task = one story, two buttons, details on demand. The whole card
-// collapses to its header row (finished tasks start folded — decided
-// once, never re-collapsed under the student's eyes). Expanded: the
+// collapses to its header row (only the next task and in-progress work
+// start open — decided once, never moved under the student's eyes).
+// Expanded: the
 // story is the task prompt — full ink, body size, the card's main text,
 // everything else supports it; the two calls to action are where the work
 // happens (the filled goto button) and running this task's tests (the
@@ -72,19 +73,24 @@ function FileRow({ file, about }: { file: FileLink; about?: string }) {
 
 export function TaskCard({
   task,
+  next,
   onTestsRan,
 }: {
   task: GuideTask;
+  /** Whether this is the next incomplete task — the one to work on. */
+  next?: boolean;
   onTestsRan: () => void;
 }) {
   const [filesOpen, setFilesOpen] = useState(false);
   const [testsOpen, setTestsOpen] = useState(false);
   const [running, setRunning] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
-  // Decided once, on first render: finished tasks start folded. After
-  // that the card never moves on its own — passing mid-session updates
-  // the pill in place (same rule as the stage sections).
-  const [open, setOpen] = useState(() => task.status !== 'passing');
+  // Decided once, on first render: only the next task and tasks with
+  // work in progress start open — on a fresh visit that is a single
+  // card, not the whole first stage. After that the card never moves on
+  // its own — passing mid-session updates the pill in place (same rule
+  // as the stage sections).
+  const [open, setOpen] = useState(() => next || task.status === 'in-progress');
   const curiositiesRead = allCuriositiesRead([task.id], useReadCuriosities());
   const gotoName = task.implement.path.split('/').pop() ?? task.implement.path;
 
@@ -186,10 +192,13 @@ export function TaskCard({
             above separates it from the narrative band. */}
         <div className="mt-5 flex flex-wrap items-start gap-x-3 gap-y-2">
           {/* Accent text, not accent fill: sixteen filled buttons down a
-              page strain the eye; the color alone marks the primary. */}
+              page strain the eye; the color alone marks the primary. On
+              the next incomplete task only, a soft glow in the warn
+              amber — the same hue as its "in progress" state — points at
+              where the work continues. */}
           <Button
             href={vscodeHref(task.implement.abs, task.implement.line)}
-            className="font-semibold text-accent"
+            className={`font-semibold text-accent ${next ? 'shadow-[0_0_8px] shadow-warn/60' : ''}`}
           >
             <SquarePen size={15} aria-hidden />
             {/* One span: the sans label and the mono file name share an
