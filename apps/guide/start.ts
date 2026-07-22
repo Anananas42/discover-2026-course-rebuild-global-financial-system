@@ -120,6 +120,24 @@ async function waitForPortsFree(
   return false;
 }
 
+// Bring the installed libraries up to date — after pulling a course
+// update, new or changed dependencies must land before the servers
+// start. A quick no-op when nothing changed. pnpm is on PATH (this
+// process was started through it); Windows needs a shell because pnpm
+// is a .cmd shim there.
+console.log('Installing the libraries: pnpm install');
+const install = spawnSync('pnpm', ['install'], {
+  cwd: ROOT,
+  stdio: ['ignore', 'inherit', 'inherit'],
+  shell: process.platform === 'win32',
+});
+if (install.status !== 0) {
+  console.error(
+    'Could not install the libraries — continuing with what is already ' +
+      'there. If something fails to start, run: pnpm install'
+  );
+}
+
 // Announce before the blocking call and inherit docker's own output:
 // if this step is slow or stuck (daemon not running, first-time image
 // pull), the user must see where and why — never a silent wait.
