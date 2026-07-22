@@ -66,6 +66,7 @@
     },
     {
       "files": [
+        "apps/dashboard/src/App.tsx",
         "apps/dashboard/src/components/RecoveryGlobe.tsx",
         "apps/dashboard/src/components/land-mask.ts",
         "apps/guide/src/components/SolarStorm.tsx"

@@ -177,11 +177,15 @@ float angDiff(float a, float b) {
 float flare(vec2 rel, float d, float ang, float t,
             float a0, float len, float wid, float seed) {
   float rad = (d - 0.98) / len;
-  if (rad < 0.0 || rad > 1.3) return 0.0;
+  if (rad < 0.0 || rad > 1.0) return 0.0;
   float bend = 0.3 * sin(seed * 7.0) + 0.08 * sin(t * 0.15 + seed * 3.0);
   float dA = angDiff(ang, a0 + bend * rad);
   float lobe = exp(-pow(dA / (wid * (1.0 - 0.4 * rad)), 2.0));
   float env = pow(max(1.0 - rad, 0.0), 1.6);
+  // The lobe is thin: almost everywhere on the ring its envelope has
+  // already decayed below half a color quantum, and the turbulence
+  // that shreds it could only make it dimmer — skip the noise there.
+  if (lobe * env < 0.002) return 0.0;
   float n = fbm(vec3(rel * 2.5 + seed * 11.0, t * 0.1));
   float shred = smoothstep(-0.35 + 0.9 * rad, 0.45 + 0.9 * rad, n + 0.25);
   float surge = 0.8 + 0.2 * sin(t * 0.23 + seed * 5.0);
@@ -214,36 +218,48 @@ void main() {
 
   // The storm's menace: red haze soaking the corner, and a corona
   // whose brightness streaks along noise — structure, not a halo.
+  // The streak's noise is gated where exp() has already driven the
+  // term under one color quantum — most of the sky pays nothing.
   col += u_deep * 0.13 * exp(-out_ * 0.8);
-  float streak = fbm(vec3(ang * 2.5, d * 1.3 - t * 0.05, 3.7));
-  col += (u_orange * 0.5 + u_deep * 0.35) * exp(-out_ * 2.6) * (0.6 + 0.5 * streak);
+  if (out_ < 2.5) {
+    float streak = fbm(vec3(ang * 2.5, d * 1.3 - t * 0.05, 3.7));
+    col += (u_orange * 0.5 + u_deep * 0.35) * exp(-out_ * 2.6) * (0.6 + 0.5 * streak);
+  }
 
   // The flares: one dominant eruption and three lesser, aimed into
-  // the visible sky (angles run clockwise from screen-right).
-  float fl = 0.0;
-  fl += flare(rel, d, ang, t, 2.35, 1.25, 0.16, 0.0);
-  fl += flare(rel, d, ang, t, 3.05, 0.75, 0.12, 1.0);
-  fl += flare(rel, d, ang, t, 1.62, 0.55, 0.10, 2.0);
-  fl += flare(rel, d, ang, t, 1.95, 0.35, 0.08, 3.0);
-  col += (u_orange * 0.85 + u_deep * 0.4) * fl + u_warm * fl * fl * 0.8;
+  // the visible sky (angles run clockwise from screen-right). The
+  // longest reaches d = 0.98 + 1.25; beyond that every flare returns
+  // zero, so the sky skips them in one branch.
+  if (d < 2.23) {
+    float fl = 0.0;
+    fl += flare(rel, d, ang, t, 2.35, 1.25, 0.16, 0.0);
+    fl += flare(rel, d, ang, t, 3.05, 0.75, 0.12, 1.0);
+    fl += flare(rel, d, ang, t, 1.62, 0.55, 0.10, 2.0);
+    fl += flare(rel, d, ang, t, 1.95, 0.35, 0.08, 3.0);
+    col += (u_orange * 0.85 + u_deep * 0.4) * fl + u_warm * fl * fl * 0.8;
+  }
 
   // The surface. The limb itself boils — displaced by low-frequency
   // noise — and the body is granulation over limb darkening: white
   // hot at the center of the disc, amber, orange, then deep red where
   // the sphere turns away. Sunspots open where the convection dips.
-  float limb = 0.012 * fbm(vec3(cos(ang) * 2.0, sin(ang) * 2.0, t * 0.08));
-  float ds = d + limb;
-  float body = smoothstep(1.0, 0.99, ds);
-  if (body > 0.0) {
-    float g1 = fbm(vec3(rel * 3.0, t * 0.02));
-    float g2 = fbm(vec3(rel * 8.0 + 5.0, t * 0.04));
-    float mu = sqrt(max(1.0 - ds * ds, 0.0));
-    vec3 surf = mix(u_deep * 0.8, u_orange, smoothstep(0.0, 0.55, mu));
-    surf = mix(surf, u_warm, smoothstep(0.35, 0.9, mu));
-    surf = mix(surf, u_hot, smoothstep(0.7, 1.0, mu) * 0.85);
-    surf *= 0.82 + 0.2 * g1 + 0.12 * g2;
-    surf *= 1.0 - 0.45 * smoothstep(0.45, 0.8, -g1);
-    col = mix(col, surf, body);
+  // Past d = 1.05 the displaced limb cannot reach and body stays zero,
+  // so the open sky skips the limb noise too.
+  if (d < 1.05) {
+    float limb = 0.012 * fbm(vec3(cos(ang) * 2.0, sin(ang) * 2.0, t * 0.08));
+    float ds = d + limb;
+    float body = smoothstep(1.0, 0.99, ds);
+    if (body > 0.0) {
+      float g1 = fbm(vec3(rel * 3.0, t * 0.02));
+      float g2 = fbm(vec3(rel * 8.0 + 5.0, t * 0.04));
+      float mu = sqrt(max(1.0 - ds * ds, 0.0));
+      vec3 surf = mix(u_deep * 0.8, u_orange, smoothstep(0.0, 0.55, mu));
+      surf = mix(surf, u_warm, smoothstep(0.35, 0.9, mu));
+      surf = mix(surf, u_hot, smoothstep(0.7, 1.0, mu) * 0.85);
+      surf *= 0.82 + 0.2 * g1 + 0.12 * g2;
+      surf *= 1.0 - 0.45 * smoothstep(0.45, 0.8, -g1);
+      col = mix(col, surf, body);
+    }
   }
 
   gl_FragColor = vec4(col, 1.0);
@@ -279,14 +295,19 @@ function drawFallback(
   ctx.globalAlpha = 1;
 }
 
-/** Compile and link the scene; null (with the driver's log on the
- *  console) if the driver rejects it. */
-function buildProgram(gl: WebGLRenderingContext): WebGLProgram | null {
+/** Compile and link a program; null (with the driver's log on the
+ *  console) if the driver rejects it. a_pos is pinned to attribute 0,
+ *  so one vertex pointer serves the program's one triangle. */
+function buildProgram(
+  gl: WebGLRenderingContext,
+  vert: string,
+  frag: string
+): WebGLProgram | null {
   const program = gl.createProgram();
   if (!program) return null;
   for (const [kind, source] of [
-    [gl.VERTEX_SHADER, VERT],
-    [gl.FRAGMENT_SHADER, FRAG],
+    [gl.VERTEX_SHADER, vert],
+    [gl.FRAGMENT_SHADER, frag],
   ] as const) {
     const shader = gl.createShader(kind);
     if (!shader) return null;
@@ -298,10 +319,17 @@ function buildProgram(gl: WebGLRenderingContext): WebGLProgram | null {
     }
     gl.attachShader(program, shader);
   }
+  gl.bindAttribLocation(program, 0, 'a_pos');
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
     console.warn('SolarStorm shader:', gl.getProgramInfoLog(program));
     return null;
+  }
+  // The linked program owns the compiled code; detaching lets the
+  // shader objects go now, and deleting the program later frees it all.
+  for (const shader of gl.getAttachedShaders(program) ?? []) {
+    gl.detachShader(program, shader);
+    gl.deleteShader(shader);
   }
   return program;
 }
@@ -342,8 +370,8 @@ export function SolarStorm() {
       return () => observer.disconnect();
     }
 
-    const program = buildProgram(gl);
-    if (!program) {
+    const scene = buildProgram(gl, VERT, FRAG);
+    if (!scene) {
       // A driver that grants the context but rejects the shader still
       // owes the hero its black sky — clear is the call that cannot
       // fail. (The 2D fallback is out of reach: a canvas that has had
@@ -361,7 +389,7 @@ export function SolarStorm() {
       paint();
       return () => observer.disconnect();
     }
-    gl.useProgram(program);
+    gl.useProgram(scene);
 
     // One triangle big enough to cover clip space — no quad, no index
     // buffer, nothing to cull.
@@ -372,11 +400,10 @@ export function SolarStorm() {
       new Float32Array([-1, -1, 3, -1, -1, 3]),
       gl.STATIC_DRAW
     );
-    const aPos = gl.getAttribLocation(program, 'a_pos');
-    gl.enableVertexAttribArray(aPos);
-    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
-    const uniform = (name: string) => gl.getUniformLocation(program, name);
+    const uniform = (name: string) => gl.getUniformLocation(scene, name);
     const uRes = uniform('u_res');
     const uTime = uniform('u_time');
     gl.uniform3fv(uniform('u_hot'), rgbVec(tone(colors.warn, 0.35, 1.85)));
@@ -392,18 +419,41 @@ export function SolarStorm() {
     );
     gl.uniform3fv(uniform('u_star'), rgbVec(colors.ink));
 
-    const render = (time: number) => {
+    const renderScene = (timeMs: number) => {
       // The shader works in CSS pixels (to match the layout), scaled
       // up to the raster by the viewport.
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.uniform2f(uRes, canvas.clientWidth, canvas.clientHeight);
-      gl.uniform1f(uTime, reduced ? 40 : time / 1000);
+      gl.uniform1f(uTime, reduced ? 40 : timeMs / 1000);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
+
+    // The beat. Nothing in the scene needs a frame rate: the fastest
+    // motion is the stars' twinkle at ~1.4 rad/s, whose largest step
+    // across one beat is ~1.5% of a faint star's brightness — below
+    // notice. Everything else drifts sub-pixel per beat. Repainting on
+    // the beat instead of per frame also means the glass above (the
+    // header's and the intro panel's backdrop blur) re-filters ten
+    // times a second instead of at the display's rate.
+    const SNAP_MS = 100;
+    let nextBeat = -Infinity;
+    const loop = (time: number) => {
+      frame = requestAnimationFrame(loop);
+      if (time < nextBeat) return;
+      nextBeat = time + SNAP_MS;
+      renderScene(time);
+    };
+
     const resize = () => {
       canvas.width = canvas.clientWidth * dpr();
       canvas.height = canvas.clientHeight * dpr();
-      if (reduced) render(0);
+      if (reduced) {
+        renderScene(0);
+        return;
+      }
+      // Sizing wiped the canvas; repaint on the next frame, not the
+      // next beat.
+      nextBeat = -Infinity;
     };
     // The hero's height follows its content (the intro loads after the
     // first poll), so the canvas watches its own box, not the window.
@@ -411,17 +461,35 @@ export function SolarStorm() {
     observer.observe(canvas);
     resize();
     let frame = 0;
-    if (reduced) {
-      render(0);
-    } else {
-      frame = requestAnimationFrame(function loop(time) {
-        render(time);
+    let running = false;
+    // The hero scrolls away as soon as the student is down in the
+    // tasks — most of a session — and an off-screen sun must not keep
+    // boiling. The observer fires on setup, so it also starts the loop.
+    const visibility = new IntersectionObserver(entries => {
+      const visible = entries.at(-1)?.isIntersecting ?? false;
+      if (visible && !running) {
+        running = true;
         frame = requestAnimationFrame(loop);
-      });
+      } else if (!visible && running) {
+        running = false;
+        cancelAnimationFrame(frame);
+      }
+    });
+    if (reduced) {
+      renderScene(0);
+    } else {
+      visibility.observe(canvas);
     }
     return () => {
       cancelAnimationFrame(frame);
+      visibility.disconnect();
       observer.disconnect();
+      // Free what this mount created — but never the context itself:
+      // StrictMode and hot reloads re-run the effect on the same
+      // canvas, and a canvas only ever hands out its first context, so
+      // losing it would leave the remount with a dead one.
+      gl.deleteBuffer(buffer);
+      gl.deleteProgram(scene);
     };
   }, []);
 

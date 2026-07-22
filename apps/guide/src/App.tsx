@@ -1,5 +1,5 @@
 import { Pencil } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Button } from '@banks/shared/browser/Button.tsx';
 import { ThemeToggle } from '@banks/shared/browser/ThemeToggle.tsx';
@@ -40,9 +40,18 @@ export function App() {
       .filter(task => task.stage === briefingStage)
       .every(task => task.status === 'passing');
 
+  // The poll usually returns exactly what it returned 3 seconds ago;
+  // swapping in an identical object would re-render every task card
+  // for nothing, so unchanged payloads are dropped.
+  const lastPayload = useRef('');
   const refresh = useCallback(async () => {
     try {
-      setState(await fetchState());
+      const next = await fetchState();
+      const payload = JSON.stringify(next);
+      if (payload !== lastPayload.current) {
+        lastPayload.current = payload;
+        setState(next);
+      }
       setConnectionError(null);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -125,22 +134,27 @@ export function App() {
           )}
         </div>
       </div>
-      <div className="mx-auto max-w-5xl px-6 pb-6">
-        {state && (
-          <>
-            <TaskList
-              stages={state.stages}
-              tasks={state.tasks}
-              lastRunAt={state.lastRunAt}
-              focusRequest={focusRequest}
-              onTestsRan={refresh}
-              actions={
-                <SubmitControls course={state.course} onSubmitted={refresh} />
-              }
-            />
-            <VscodeTips />
-          </>
-        )}
+      {/* The Tasks divider: the rule sits exactly on the hero's bottom
+          edge and runs the full page width, so it lives out here rather
+          than inside the width-limited container (or Section). */}
+      <div className="border-t border-ink/10">
+        <div className="mx-auto max-w-5xl px-6 pb-6">
+          {state && (
+            <>
+              <TaskList
+                stages={state.stages}
+                tasks={state.tasks}
+                lastRunAt={state.lastRunAt}
+                focusRequest={focusRequest}
+                onTestsRan={refresh}
+                actions={
+                  <SubmitControls course={state.course} onSubmitted={refresh} />
+                }
+              />
+              <VscodeTips />
+            </>
+          )}
+        </div>
       </div>
     </>
   );
