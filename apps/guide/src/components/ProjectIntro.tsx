@@ -6,14 +6,13 @@ import weNeedYou from '../assets/we-need-you.png';
 import { courseConfigured, IdentityDialog } from './IdentityDialog.tsx';
 import { ZoomableImage } from './ZoomableImage.tsx';
 
-// The hero CTA's shape, shared by all of its lives. During the warm-up
-// the only button is "Next task", wearing the saturated brand yellow
-// plus the glow that marks the next step everywhere in the guide — the
-// financial system is not the destination yet. Once the warm-up is
-// complete, that treatment passes to the initialize button (and, after
-// configuration, to the financial system link in the saturated accent
-// pink with a plain lift), while "Next task" stays on as an outlined
-// companion.
+// The hero CTA's shape, shared by all of its lives. The next-task button
+// is always outlined — during the warm-up it stands alone (the financial
+// system is not the destination yet), afterwards it accompanies the
+// vivid primary: the initialize button in the saturated brand yellow
+// plus the glow that marks the next step everywhere in the guide, then —
+// once configured — the financial system link in the saturated accent
+// pink with a plain lift.
 // Not the shared Button: its text-sm would win the Tailwind conflict
 // against any size override.
 const CTA_CLASS =
@@ -96,13 +95,9 @@ export function ProjectIntro({
         {nextTask !== null && (
           <button
             onClick={onNextTask}
-            className={`${CTA_CLASS} ${
-              warmupDone
-                ? 'border border-ink/30 hover:bg-ink/10'
-                : 'bg-brand-vivid text-brand-vivid-ink shadow-[0_0_10px] shadow-brand-vivid/60'
-            }`}
+            className={`${CTA_CLASS} border border-ink/30 hover:bg-ink/10`}
           >
-            Next: {nextTask.id} {nextTask.title}
+            Task {nextTask.id}: {nextTask.title}
             <ArrowDown size={22} aria-hidden />
           </button>
         )}
