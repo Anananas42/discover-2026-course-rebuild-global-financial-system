@@ -31,6 +31,16 @@
      using plain `accent`. */
   --color-accent-fill: light-dark(#ed388a, #451226);
   --color-accent-ink: light-dark(#ffffff, #f472b6);
+  /* The vivid pair: brand and accent at full saturation, deliberately
+     the same loud value in both modes (no tonal inversion) — reserved
+     for the guide's hero CTA, the one button allowed to shout.
+     brand-vivid is the "next step" color: the initialize CTA's fill and
+     the glow on whichever button the student should press next.
+     accent-vivid is the Financial system link once initialized. */
+  --color-brand-vivid: #ffe100;
+  --color-brand-vivid-ink: #020202;
+  --color-accent-vivid: #ed388a;
+  --color-accent-vivid-ink: #ffffff;
   /* Operation trigger buttons use the action-fill/action-ink pair, a
      whisper of the brand hue with ink leaning the same way: a near-white
      yellow with soft olive text in light mode, a dim olive with muted

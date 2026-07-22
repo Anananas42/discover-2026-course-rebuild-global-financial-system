@@ -193,12 +193,12 @@ export function TaskCard({
         <div className="mt-5 flex flex-wrap items-start gap-x-3 gap-y-2">
           {/* Accent text, not accent fill: sixteen filled buttons down a
               page strain the eye; the color alone marks the primary. On
-              the next incomplete task only, a soft glow in the warn
-              amber — the same hue as its "in progress" state — points at
-              where the work continues. */}
+              the next incomplete task only, a soft glow in the vivid
+              brand yellow — the initialize CTA's color — points at where
+              the work continues. */}
           <Button
             href={vscodeHref(task.implement.abs, task.implement.line)}
-            className={`font-semibold text-accent ${next ? 'shadow-[0_0_8px] shadow-warn/60' : ''}`}
+            className={`font-semibold text-accent ${next ? 'shadow-[0_0_8px] shadow-brand-vivid/60' : ''}`}
           >
             <SquarePen size={15} aria-hidden />
             {/* One span: the sans label and the mono file name share an
