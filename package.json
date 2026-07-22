@@ -11,6 +11,7 @@
     "lint:write": "oxlint --type-aware --deny-warnings --fix",
     "play": "node playground.ts",
     "prepare": "simple-git-hooks",
+    "pull-course": "node pull-course.ts",
     "setup-personal-repo": "node setup-personal-repo.ts",
     "start": "node apps/guide/start.ts",
     "submit": "node submit.ts",

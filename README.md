@@ -210,12 +210,12 @@ If an update is announced — new tasks, a fix, a better explanation — first s
 ```sh
 git add -A
 git commit -m "my progress"
-git pull upstream main
+pnpm pull-course
 git push
 ```
 
-`upstream` is the course repository your copy was created from; `origin`
-is your own, where the final `git push` stores everything. Git combines
-your implementations with the update automatically. If it prints
-`CONFLICT` instead, the same lines have been edited — bring it to class
-to resolve it together in a minute.
+`pnpm pull-course` fetches my update from the course repository and
+merges it with your implementations automatically; the final `git push`
+stores the result in your own repository. If the merge prints `CONFLICT`
+instead, the same lines have been edited — bring it to class to resolve
+it together in a minute.

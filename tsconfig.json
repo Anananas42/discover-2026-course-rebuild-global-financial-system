@@ -19,6 +19,7 @@
     "apps/financial-system/server.ts",
     "scripts",
     "playground.ts",
+    "pull-course.ts",
     "run-tests.ts",
     "setup-personal-repo.ts",
     "submit.ts",
