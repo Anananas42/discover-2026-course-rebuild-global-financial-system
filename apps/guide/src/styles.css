@@ -1,0 +1,10 @@
+@import 'tailwindcss';
+@import '../../shared/theme.css';
+/* Shared components live in a linked package, which Tailwind's automatic
+   source detection skips — declare it explicitly. */
+@source '../../shared/browser';
+
+body {
+  @apply bg-page text-ink;
+  font-family: system-ui, sans-serif;
+}

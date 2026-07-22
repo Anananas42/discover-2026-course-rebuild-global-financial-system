@@ -1,0 +1,78 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "warn"
+  },
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/build/**",
+    "**/coverage/**",
+    "**/student-repo/**"
+  ],
+  "plugins": ["typescript", "import"],
+  "rules": {
+    "import/namespace": "off",
+    "import/no-default-export": "warn",
+    "import/no-duplicates": "warn",
+    "import/no-named-as-default": "warn",
+    "no-restricted-globals": [
+      "warn",
+      {
+        "name": "Math",
+        "message": "Never use Math on money — float arithmetic loses cents. Use Big (big.js)."
+      }
+    ],
+    "no-unused-expressions": "off",
+    "no-unused-vars": [
+      "warn",
+      {
+        "args": "none",
+        "argsIgnorePattern": "^_",
+        "caughtErrors": "all",
+        "caughtErrorsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_",
+        "ignoreRestSiblings": true,
+        "varsIgnorePattern": "^_"
+      }
+    ],
+    "prefer-const": "warn",
+    "require-yield": "off",
+    "typescript/no-empty-object-type": "warn",
+    "typescript/no-floating-promises": "warn",
+    "typescript/no-misused-promises": [
+      "warn",
+      {
+        "checksVoidReturn": {
+          "attributes": false
+        }
+      }
+    ],
+    "typescript/no-unsafe-argument": "warn",
+    "typescript/no-unsafe-assignment": "warn",
+    "typescript/no-unsafe-call": "warn",
+    "typescript/switch-exhaustiveness-check": [
+      "warn",
+      {
+        "considerDefaultExhaustiveForUnions": true
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["**/vite.config.ts", "**/vitest.config.ts"],
+      "rules": {
+        "import/no-default-export": "off"
+      }
+    },
+    {
+      "files": [
+        "apps/dashboard/src/components/RecoveryGlobe.tsx",
+        "apps/dashboard/src/components/land-mask.ts",
+        "apps/guide/src/components/SolarStorm.tsx"
+      ],
+      "rules": {
+        "no-restricted-globals": "off"
+      }
+    }
+  ]
+}

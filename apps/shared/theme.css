@@ -1,0 +1,76 @@
+/* The design tokens — the single source of every app's colors (and, at
+   the bottom, the one shared motion token pair). Components
+   use only these semantic tokens (text-ink, border-line, bg-surface, …),
+   never raw palette utilities; that convention is kept by review.
+
+   Each token declares its light and dark value with light-dark(). Which
+   side applies is decided by color-scheme: the default follows the OS,
+   and [data-theme] (set by an app's theme toggle) forces one.
+
+   Light values follow the discover.sk brand: white page, near-black ink
+   (#020202), pink accent (#ed388a), and the brand yellow (#fff078) as the
+   top header band with near-black text. In dark mode the band inverts —
+   a deep desaturated olive with softened brand-yellow text — so the brand
+   stays recognizable without a page-wide glowing strip.
+   GREENFIELD: the status colors (ok, warn, danger) are placeholders. */
+
+@theme {
+  --color-page: light-dark(#ffffff, #141414);
+  --color-surface: light-dark(#fafafa, #1e1e1e);
+  --color-brand: light-dark(#fff078, #2e2b0e);
+  --color-brand-ink: light-dark(#020202, #ece27e);
+  --color-faint: light-dark(#f5f5f5, #262626);
+  --color-line: light-dark(#e5e5e5, #303030);
+  --color-ink: light-dark(#020202, #e5e5e5);
+  --color-muted: light-dark(#737373, #a3a3a3);
+  --color-accent: light-dark(#ed388a, #f472b6);
+  /* Filled buttons use the accent-fill/accent-ink pair. In light mode a
+     solid accent slab with white text; in dark mode the tonal
+     inversion — a deep tinted fill with the bright accent as text — a
+     solid bright slab screams on a dark page. Text and outlines keep
+     using plain `accent`. */
+  --color-accent-fill: light-dark(#ed388a, #451226);
+  --color-accent-ink: light-dark(#ffffff, #f472b6);
+  /* Operation trigger buttons use the action-fill/action-ink pair, a
+     whisper of the brand hue with ink leaning the same way: a near-white
+     yellow with soft olive text in light mode, a dim olive with muted
+     straw text in dark. */
+  --color-action-fill: light-dark(#fffef6, #1e1c14);
+  --color-action-ink: light-dark(#33302a, #e2ded0);
+  --color-ok: light-dark(#059669, #34d399);
+  --color-warn: light-dark(#d97706, #fbbf24);
+  --color-danger: light-dark(#dc2626, #f87171);
+
+  /* Disclosure motion: the shared collapsible eases open and closed over
+     this pair. Radix measures the panel into
+     --radix-collapsible-content-height before the animation runs. */
+  --animate-collapsible-open: collapsible-open 150ms ease-out;
+  --animate-collapsible-close: collapsible-close 150ms ease-out;
+
+  @keyframes collapsible-open {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-collapsible-content-height);
+    }
+  }
+  @keyframes collapsible-close {
+    from {
+      height: var(--radix-collapsible-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+}
+
+:root {
+  color-scheme: light dark;
+}
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}

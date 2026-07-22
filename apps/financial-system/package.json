@@ -1,0 +1,33 @@
+{
+  "name": "@banks/financial-system",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "server": "node server.ts"
+  },
+  "dependencies": {
+    "@banks/central-bank": "workspace:*",
+    "@banks/commercial-bank": "workspace:*",
+    "@banks/db": "workspace:*",
+    "@banks/shared": "workspace:*",
+    "@trpc/client": "^11.18.0",
+    "@trpc/server": "^11.18.0",
+    "big.js": "^7.0.1",
+    "effect": "^3.22.0",
+    "lucide-react": "^1.25.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "sonner": "^2.0.7",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.0",
+    "@types/big.js": "^7.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "tailwindcss": "^4.3.3",
+    "vite": "^7.0.0"
+  }
+}

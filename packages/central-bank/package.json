@@ -1,0 +1,16 @@
+{
+  "name": "@banks/central-bank",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./src/*"
+  },
+  "dependencies": {
+    "@banks/db": "workspace:*",
+    "big.js": "^7.0.1",
+    "effect": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/big.js": "^7.0.0"
+  }
+}

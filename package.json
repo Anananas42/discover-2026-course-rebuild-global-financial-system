@@ -1,0 +1,41 @@
+{
+  "name": "rebuild-the-banks",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run test",
+    "financial-system": "node apps/financial-system/server.ts",
+    "fix": "pnpm run lint:write && pnpm run format",
+    "format": "prettier . --write --cache",
+    "format:check": "prettier . --check --cache",
+    "generate-student": "node scripts/generate-student-repo.ts",
+    "guide": "node apps/guide/server.ts",
+    "lint": "oxlint --type-aware --deny-warnings",
+    "lint:write": "oxlint --type-aware --deny-warnings --fix",
+    "play": "node playground.ts",
+    "prepare": "simple-git-hooks",
+    "publish-student": "node scripts/publish-student-repo.ts",
+    "start": "node apps/guide/start.ts",
+    "submit": "node submit.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p apps/financial-system && tsc --noEmit -p apps/guide"
+  },
+  "dependencies": {
+    "@banks/db": "workspace:*",
+    "big.js": "^7.0.1",
+    "effect": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/big.js": "^7.0.0",
+    "@types/node": "^24.0.0",
+    "lint-staged": "^16.1.2",
+    "oxlint": "^1.73.0",
+    "oxlint-tsgolint": "^0.24.0",
+    "prettier": "^3.6.2",
+    "prettier-plugin-packagejson": "^2.5.10",
+    "simple-git-hooks": "^2.13.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "packageManager": "pnpm@10.33.0"
+}

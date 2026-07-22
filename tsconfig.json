@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": [
+    "packages",
+    "apps/shared",
+    "apps/guide/server.ts",
+    "apps/guide/start.ts",
+    "apps/financial-system/server.ts",
+    "scripts",
+    "playground.ts",
+    "submit.ts",
+    "vitest.config.ts"
+  ],
+  "exclude": ["apps/shared/browser"]
+}
