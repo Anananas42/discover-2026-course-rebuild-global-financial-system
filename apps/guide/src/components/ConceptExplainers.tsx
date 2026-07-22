@@ -88,10 +88,11 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
 });`}
         </pre>
         <p>
-          It is boilerplate — copy it exactly; you don't need to understand its
-          syntax. The same goes for <Code>yield*</Code>: write it in front of
-          every call, every time, without thinking. It runs the call and hands
-          back the answer.
+          It is boilerplate — every task already has it in place, and your code
+          goes inside; you don't need to understand its syntax. The one part you
+          write yourself is <Code>yield*</Code>: put it in front of every call,
+          every time, without thinking. It runs the call and hands back the
+          answer.
         </p>
       </>
     ),

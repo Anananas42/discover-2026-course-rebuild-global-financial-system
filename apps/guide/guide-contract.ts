@@ -38,7 +38,7 @@ export interface GuideTask {
   implement: FileLink;
   /** The public test file to satisfy, at this task's describe. */
   tests: FileLink | null;
-  /** Other sources in the same package — context, not work. */
+  /** Sibling sources this task touches — context, not work. */
   context: FileLink[];
 }
 

@@ -501,7 +501,8 @@ export class CommercialBanks {
    * the sender and not yet have arrived, exactly as in reality, but it
    * can never arrive unsettled, and is never created or destroyed. The
    * engine has already resolved the parties and checked the order,
-   * reserves included.
+   * reserves included. The message addresses the parties by IBAN and
+   * BIC, built with ibanFor and bicFor (iban.ts).
    */
   interbankTransfer(input: {
     senderBank: Bank;

@@ -353,15 +353,22 @@ function firstErrorLine(messages: string[] | undefined): string | null {
 /**
  * A task's files, structured the way the work actually is: one goto file
  * (the TASK region, at its marker), one test file to satisfy (found by
- * its `task <id>` describe, linked at that line), and the other sources
- * in the same package as context. Absolute paths power vscode:// links.
+ * its `task <id>` describe, linked at that line), and as context the
+ * sibling sources this task actually touches. A sibling is context when
+ * one of its exported names appears in the task's visible material —
+ * its test block, the doc comment and signature above its marker, or
+ * the code currently in its region — so the list follows the work as
+ * the student writes it. A file a solution needs must therefore be
+ * named by the task's docs or tests, never by a hand-kept list.
+ * Absolute paths power vscode:// links.
  */
 async function taskFiles(
   marker: TaskMarker
 ): Promise<Pick<GuideTask, 'implement' | 'tests' | 'context'>> {
   const srcDir = path.dirname(marker.absFile);
   let tests: FileLink | null = null;
-  const context: FileLink[] = [];
+  let testBlock = '';
+  const siblings: FileLink[] = [];
   for (const name of (await readdir(srcDir)).sort()) {
     if (!name.endsWith('.ts')) continue;
     if (name.endsWith('.hidden.test.ts')) continue;
@@ -372,13 +379,33 @@ async function taskFiles(
       abs,
     };
     if (!name.endsWith('.test.ts')) {
-      context.push({ ...link, description: await fileBrief(abs) });
+      siblings.push(link);
       continue;
     }
-    // The task's test file is the one whose describe names the task.
+    // The task's test file is the one whose describe names the task;
+    // the block under that describe (up to the next top-level one) is
+    // part of the task's visible material.
     const lines = (await readFile(abs, 'utf8')).split('\n');
     const at = lines.findIndex(line => line.includes(`task ${marker.id}:`));
-    if (at !== -1) tests = { ...link, line: at + 1 };
+    if (at === -1) continue;
+    tests = { ...link, line: at + 1 };
+    const end = lines.findIndex(
+      (line, i) => i > at && line.startsWith('describe(')
+    );
+    testBlock = lines.slice(at, end === -1 ? lines.length : end).join('\n');
+  }
+  const visible = `${testBlock}\n${await taskSurround(marker)}\n${marker.body}`;
+  const context: FileLink[] = [];
+  for (const link of siblings) {
+    const exported = [
+      ...(await readFile(link.abs, 'utf8')).matchAll(
+        /^export (?:abstract )?(?:const|class|function|interface|type|enum) (\w+)/gm
+      ),
+    ].map(match => match[1] ?? '');
+    if (!exported.some(name => new RegExp(`\\b${name}\\b`).test(visible))) {
+      continue;
+    }
+    context.push({ ...link, description: await fileBrief(link.abs) });
   }
   return {
     implement: {
@@ -389,4 +416,22 @@ async function taskFiles(
     tests,
     context,
   };
+}
+
+/**
+ * What a student reads around a task before writing anything: the lines
+ * from the doc comment above the marker's enclosing declaration down to
+ * the marker itself — doc, signature, and the prepared preamble. Never
+ * reaches past a previous task's ENDTASK.
+ */
+async function taskSurround(marker: TaskMarker): Promise<string> {
+  const lines = (await readFile(marker.absFile, 'utf8')).split('\n');
+  const surround: string[] = [];
+  for (let i = marker.line - 2; i >= 0; i--) {
+    const line = lines[i] ?? '';
+    if (/^\s*\/\/ ENDTASK /.test(line)) break;
+    surround.push(line);
+    if (/^\s*\/\*\*/.test(line)) break;
+  }
+  return surround.reverse().join('\n');
 }

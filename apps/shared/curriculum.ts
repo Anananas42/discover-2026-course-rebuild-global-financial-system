@@ -122,7 +122,7 @@ export const CURRICULUM: CurriculumStage[] = [
           "Relay headquarters' status — your first method built on the Effect frame.",
         steps: [
           'Read the explainer above.',
-          'Copy the frame; inside it, yield* the prebuilt headquartersStatus() call and return its answer.',
+          'The frame is already in place; inside it, yield* the prebuilt headquartersStatus() call and return its answer.',
         ],
       },
       {

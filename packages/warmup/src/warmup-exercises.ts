@@ -68,10 +68,12 @@ export function headquartersStatus(): Effect.Effect<string> {
  * return its answer.
  */
 export function relayStatus(): Effect.Effect<string> {
-  // TASK 0.4: Relay the status
-  // TODO: implement task 0.4.
-  throw new NotImplementedError('0.4');
-  // ENDTASK 0.4
+  return Effect.gen(function* () {
+    // TASK 0.4: Relay the status
+    // TODO: implement task 0.4.
+    throw new NotImplementedError('0.4');
+    // ENDTASK 0.4
+  });
 }
 
 /**
@@ -81,10 +83,12 @@ export function relayStatus(): Effect.Effect<string> {
 export function readInstructions(headquarters: {
   instructions(): Promise<string>;
 }): Effect.Effect<string> {
-  // TASK 0.5: Wait for the instructions
-  // TODO: implement task 0.5.
-  throw new NotImplementedError('0.5');
-  // ENDTASK 0.5
+  return Effect.gen(function* () {
+    // TASK 0.5: Wait for the instructions
+    // TODO: implement task 0.5.
+    throw new NotImplementedError('0.5');
+    // ENDTASK 0.5
+  });
 }
 
 /**
@@ -134,8 +138,10 @@ export function recordTransfer(
   input: { from: StandInAccount; to: StandInAccount; amount: Big }
 ): Effect.Effect<void> {
   const { from, to, amount } = input;
-  // TASK 0.7: Move money in one transaction
-  // TODO: implement task 0.7.
-  throw new NotImplementedError('0.7');
-  // ENDTASK 0.7
+  return Effect.gen(function* () {
+    // TASK 0.7: Move money in one transaction
+    // TODO: implement task 0.7.
+    throw new NotImplementedError('0.7');
+    // ENDTASK 0.7
+  });
 }

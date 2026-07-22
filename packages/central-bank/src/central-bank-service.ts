@@ -162,8 +162,8 @@ export class CentralBank {
    * amount plus interest at the policy rate: the interest is the central
    * bank's income (credited to its own account) and the borrowing bank's
    * expense (debited from that bank's own account — a fresh bank is in
-   * the red until it earns by lending on). Returns the bank's total debt
-   * after the loan.
+   * the red until it earns by lending on). interestOn (policy-rate.ts)
+   * computes the interest. Returns the bank's total debt after the loan.
    */
   lendToBank(input: {
     bankId: number;
@@ -209,10 +209,11 @@ export class CentralBank {
   }
 
   /**
-   * Sets the policy rate, from a percentage as typed ('4.75'). Only
-   * loans made after the change carry the new rate — existing claims
-   * keep the price they were made at, like a signed loan contract.
-   * Returns the stored ratio.
+   * Sets the policy rate, from a percentage as typed ('4.75'): parseRate
+   * (policy-rate.ts) checks it and converts it to the ratio, stored
+   * under POLICY_RATE_KEY. Only loans made after the change carry the
+   * new rate — existing claims keep the price they were made at, like a
+   * signed loan contract. Returns the stored ratio.
    */
   setPolicyRate(input: {
     percent: string;
@@ -232,7 +233,9 @@ export class CentralBank {
    * income it earned — into a bank, crediting both the bank's reserves
    * and the bank's equity (in reality: interest on reserves, services).
    * This is how the central bank's income returns to the system; without
-   * it, banks could never repay more than was created.
+   * it, banks could never repay more than was created. Refusal messages
+   * state the numbers to the currency's decimal places — CURRENCY
+   * (currency.ts) carries them.
    */
   payToBank(input: {
     bankId: number;
@@ -291,7 +294,9 @@ export class CentralBank {
    * Destroys money: a bank repays its debt, so its reserves are debited
    * and the claim on it shrinks by the same amount — both sides of the
    * balance sheet contract together. Returns the remaining debt; a claim
-   * repaid to zero disappears from the books.
+   * repaid to zero disappears from the books. Refusal messages state the
+   * numbers to the currency's decimal places — CURRENCY (currency.ts)
+   * carries them.
    */
   receiveRepayment(input: {
     bankId: number;
