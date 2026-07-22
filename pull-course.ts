@@ -28,11 +28,13 @@ if (capture('git', ['status', '--porcelain']) !== '') {
 }
 
 // --no-rebase: merge, explicitly — a first divergent pull would
-// otherwise stop and ask how to reconcile.
-const pull = spawnSync('git', ['pull', '--no-rebase', remote, 'main'], {
-  cwd: ROOT,
-  stdio: 'inherit',
-});
+// otherwise stop and ask how to reconcile. --no-edit: accept the
+// generated merge message instead of opening an editor.
+const pull = spawnSync(
+  'git',
+  ['pull', '--no-rebase', '--no-edit', remote, 'main'],
+  { cwd: ROOT, stdio: 'inherit' }
+);
 if (pull.status !== 0) {
   fail(
     '\nThe update did not merge cleanly. If Git printed CONFLICT, the ' +
