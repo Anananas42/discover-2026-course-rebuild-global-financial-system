@@ -71,18 +71,20 @@ export const TASK = {
 export const CURRICULUM: CurriculumStage[] = [
   {
     stage: 0,
-    system: 'Training',
-    subsystem: 'Warm-up',
+    system: 'Headquarters',
+    subsystem: 'Mission briefing',
     announcement: '{country} reported for duty',
-    title: 'Warm-up',
-    // No outcome line: the warm-up restores nothing in the economy, and
-    // its tasks' explainers already say what it is for.
+    title: 'Mission briefing',
+    // No outcome line: the briefing restores nothing in the economy,
+    // and its tasks' explainers already say what it is for.
+    // Its stories speak in the briefing voice — headquarters issuing
+    // orders — not the user-story voice of the mission stages below.
     outcome: '',
     tasks: [
       {
         id: '0.1',
         story:
-          'I send headquarters my status report — my first line of restored code, and my first passing test.',
+          'Send headquarters your status report — your first line of restored code, and your first passing test.',
         steps: [
           'Read the explainer above and mark it read.',
           'Open the file below — this one time, the solution is written right above the gap.',
@@ -92,7 +94,7 @@ export const CURRICULUM: CurriculumStage[] = [
       {
         id: '0.2',
         story:
-          'I add two money amounts the safe way: with a Big method, never with plus.',
+          'Add two money amounts the safe way: with a Big method, never with plus.',
         steps: [
           'Open the test file to see the amounts it expects.',
           'The explainer above lists the Big methods — one of them is the whole solution.',
@@ -101,7 +103,7 @@ export const CURRICULUM: CurriculumStage[] = [
       {
         id: '0.3',
         story:
-          "I read the central bank's own account balance from a repository and hand back the answer untouched.",
+          "Read the central bank's own account balance from a repository and hand back the answer untouched.",
         steps: [
           'Read the explainer above.',
           'One line: return what centralBankRepo.ownAccountBalance() gives you.',
@@ -110,7 +112,7 @@ export const CURRICULUM: CurriculumStage[] = [
       {
         id: '0.4',
         story:
-          "I relay headquarters' status — my first method built on the Effect frame.",
+          "Relay headquarters' status — your first method built on the Effect frame.",
         steps: [
           'Read the explainer above.',
           'Copy the frame; inside it, yield* the prebuilt headquartersStatus() call and return its answer.',
@@ -119,7 +121,7 @@ export const CURRICULUM: CurriculumStage[] = [
       {
         id: '0.5',
         story:
-          "I wait for headquarters' instructions — an answer that arrives later, as a Promise.",
+          "Wait for headquarters' instructions — an answer that arrives later, as a Promise.",
         steps: [
           'Read the explainer above — the one pattern there is the whole solution.',
         ],
@@ -127,7 +129,7 @@ export const CURRICULUM: CurriculumStage[] = [
       {
         id: '0.6',
         story:
-          'I refuse a negative amount with a named error — the smallest method that can say no.',
+          'Refuse a negative amount with a named error — the smallest method that can say no.',
         steps: [
           'Read the explainer above.',
           'The signature names the error to fail with; give it the amount as text.',
@@ -137,7 +139,7 @@ export const CURRICULUM: CurriculumStage[] = [
       {
         id: '0.7',
         story:
-          'I move an amount between two accounts in one transaction — both writes land, or neither does.',
+          'Move an amount between two accounts in one transaction — both writes land, or neither does.',
         steps: [
           'Read the explainer above.',
           'Write both new balances — minus the amount, plus the amount — inside one db.transaction call.',

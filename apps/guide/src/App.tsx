@@ -28,16 +28,16 @@ export function App() {
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
   const [theme, setTheme] = useTheme();
 
-  // The warm-up is the first curriculum stage. While it is unfinished
-  // the hero's only call to action is the next task; the financial
-  // system enters once the warm-up is done.
+  // The mission briefing is the first curriculum stage. While it is
+  // unfinished the hero's only call to action is the next task; the
+  // financial system enters once the briefing is done.
   const nextTask =
     (state && nextIncompleteTask(state.stages, state.tasks)) ?? null;
-  const warmupStage = state?.stages[0]?.stage;
-  const warmupDone =
+  const briefingStage = state?.stages[0]?.stage;
+  const briefingDone =
     state !== null &&
     state.tasks
-      .filter(task => task.stage === warmupStage)
+      .filter(task => task.stage === briefingStage)
       .every(task => task.status === 'passing');
 
   const refresh = useCallback(async () => {
@@ -111,7 +111,7 @@ export function App() {
             <ProjectIntro
               financialSystemUrl={state.financialSystemUrl}
               course={state.course}
-              warmupDone={warmupDone}
+              briefingDone={briefingDone}
               nextTask={nextTask}
               onNextTask={() => {
                 if (!nextTask) return;

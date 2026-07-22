@@ -156,6 +156,7 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
     account: from.name,
     balance: from.balance.minus(amount),
   });
+  // <-- the program could die right here — e.g. due to a power outage
   await tx.setBalance({
     account: to.name,
     balance: to.balance.plus(amount),

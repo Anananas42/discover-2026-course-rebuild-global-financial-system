@@ -1,6 +1,7 @@
 /* oxlint-disable no-unused-vars -- imports here may be used only by the task bodies you will write. */
 import { NotImplementedError } from '../../central-bank/src/bank-errors.ts';
-// Warm-up: seven tiny exercises, one concept each, before any banking.
+// The mission briefing: seven tiny exercises, one concept each, before
+// any banking.
 // Each one is a single instance of a pattern that every later task uses:
 // making a test pass, computing with Big, handing back another program's
 // answer, the bare Effect frame, waiting for a Promise, saying no with

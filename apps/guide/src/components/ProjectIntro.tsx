@@ -7,8 +7,8 @@ import { courseConfigured, IdentityDialog } from './IdentityDialog.tsx';
 import { ZoomableImage } from './ZoomableImage.tsx';
 
 // The hero CTA's shape, shared by all of its lives. The next-task button
-// is always outlined — during the warm-up it stands alone (the financial
-// system is not the destination yet), afterwards it accompanies the
+// is always outlined — during the mission briefing it stands alone (the
+// financial system is not the destination yet), afterwards it accompanies the
 // vivid primary: the initialize button in the saturated brand yellow
 // plus the glow that marks the next step everywhere in the guide, then —
 // once configured — the financial system link in the saturated accent
@@ -21,15 +21,15 @@ const CTA_CLASS =
 export function ProjectIntro({
   financialSystemUrl,
   course,
-  warmupDone,
+  briefingDone,
   nextTask,
   onNextTask,
   onSaved,
 }: {
   financialSystemUrl: string;
   course: CourseConfig;
-  /** Every warm-up task passing — the financial system CTA's cue. */
-  warmupDone: boolean;
+  /** Every mission-briefing task passing — the financial system CTA's cue. */
+  briefingDone: boolean;
   /** The next task to work on, or null when everything passes. */
   nextTask: GuideTask | null;
   onNextTask: () => void;
@@ -67,7 +67,7 @@ export function ProjectIntro({
         the same: the world comes back one country at a time.
       </p>
       <div className="my-7 flex flex-wrap items-center justify-center gap-4">
-        {warmupDone &&
+        {briefingDone &&
           (courseConfigured(course) ? (
             <a
               href={financialSystemUrl}

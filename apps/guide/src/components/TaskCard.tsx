@@ -17,9 +17,12 @@ import {
   CollapsibleTrigger,
 } from '@banks/shared/browser/ui/collapsible.tsx';
 
+import { TASK } from '@banks/shared/curriculum.ts';
+
 import type { FileLink, GuideTask, TaskStatus } from '../../guide-contract.ts';
 import { vscodeHref } from '../vscode-link.ts';
 import { CONCEPTS_BY_TASK, ConceptExplainer } from './ConceptExplainers.tsx';
+import { InitializeExplainer } from './InitializeExplainer.tsx';
 import {
   allCuriositiesRead,
   CURIOSITIES_BY_TASK,
@@ -176,6 +179,15 @@ export function TaskCard({
             "read this" from "operate this". */}
         {task.story && (
           <p className="text-base leading-relaxed">{task.story}</p>
+        )}
+
+        {/* The first task after the mission briefing carries the bridge
+            card: it explains the initialize button the finished briefing
+            reveals in the hero, and scrolls back up to it. */}
+        {task.id === TASK.openBank && (
+          <div className="mt-3 grid gap-3">
+            <InitializeExplainer />
+          </div>
         )}
 
         {/* Stage-0 tasks teach a concept right where it is applied: the

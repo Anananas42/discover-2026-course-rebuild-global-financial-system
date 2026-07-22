@@ -398,12 +398,13 @@ const CURIOSITIES: Record<CuriosityId, { title: string; body: ReactNode }> = {
     body: (
       <>
         <p>
-          Your transfer commits two transactions, on purpose. The warm-up taught
-          that writes belonging together land together — but here the reserves
-          settle at the central bank first, through the central bank's own
-          operation (the one you built in stage 3), and only then do the client
-          balances move. That mirrors reality: the central bank's ledger is a
-          separate computer, and a bank cannot write into it — it can only ask.
+          Your transfer commits two transactions, on purpose. The mission
+          briefing taught that writes belonging together land together — but
+          here the reserves settle at the central bank first, through the
+          central bank's own operation (the one you built in stage 3), and only
+          then do the client balances move. That mirrors reality: the central
+          bank's ledger is a separate computer, and a bank cannot write into it
+          — it can only ask.
         </p>
         <p>
           Two transactions means a gap between them. If the power died there,
