@@ -15,6 +15,7 @@
     "play": "node playground.ts",
     "prepare": "simple-git-hooks",
     "publish-student": "node scripts/publish-student-repo.ts",
+    "setup-personal-repo": "node setup-personal-repo.ts",
     "start": "node apps/guide/start.ts",
     "submit": "node submit.ts",
     "test": "node run-tests.ts",

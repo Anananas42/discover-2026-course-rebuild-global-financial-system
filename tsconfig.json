@@ -20,6 +20,7 @@
     "scripts",
     "playground.ts",
     "run-tests.ts",
+    "setup-personal-repo.ts",
     "submit.ts",
     "vitest.config.ts"
   ],

@@ -10,9 +10,9 @@ through it once; from then on you work in the project guide that
 
 ## 1. Install the tools
 
-The project needs five tools: Git, Node.js, pnpm, Docker, and Visual
-Studio Code. Check each one even if it sounds familiar — the versions
-matter.
+The project needs six tools: Git, the GitHub CLI, Node.js, pnpm, Docker,
+and Visual Studio Code. Check each one even if it sounds familiar — the
+versions matter.
 
 ### Git
 
@@ -40,6 +40,25 @@ make (any email works; it just labels your saves):
 ```sh
 git config --global user.name "Your Name"
 git config --global user.email "you@example.com"
+```
+
+### GitHub CLI
+
+The `gh` command lets the project talk to GitHub for you — a later step
+uses it to create your own copy of the project there.
+
+- **Windows**: download the installer from
+  [cli.github.com](https://cli.github.com) and run it with default
+  settings.
+- **macOS**: `brew install gh`, or the installer from
+  [cli.github.com](https://cli.github.com).
+- **Linux**: install the `gh` package following
+  [cli.github.com](https://cli.github.com) for your distribution.
+
+Check:
+
+```sh
+gh --version
 ```
 
 ### Node.js — version 24 or newer
@@ -151,10 +170,13 @@ authenticated`.
    code .
    ```
 
-3. Install the project's libraries:
+3. Make the project yours. Pick a name for your copy — this creates a
+   private repository with that name under your GitHub account and
+   connects this folder to it. The first run signs you in to GitHub in
+   the browser:
 
    ```sh
-   pnpm install
+   pnpm setup-personal-repo --name <the name you picked>
    ```
 
 4. Start:
@@ -163,10 +185,10 @@ authenticated`.
    pnpm start
    ```
 
-`pnpm start` brings up the database, starts the project, and opens the
-**project guide** in your browser — introduction, tasks with live status,
-test results, and your financial system. Everything from here on happens
-there. Keep the command running while you work; stop it with `Ctrl+C` and
+`pnpm start` installs the project's libraries, brings up the database,
+starts the project, and opens the **project guide** in your browser —
+introduction, tasks with live status, test results, and your financial
+system. Everything from here on happens there. Keep the command running while you work; stop it with `Ctrl+C` and
 start it the same way next time. Your data lives in the database and
 survives restarts.
 
@@ -188,9 +210,12 @@ If an update is announced — new tasks, a fix, a better explanation — first s
 ```sh
 git add -A
 git commit -m "my progress"
-git pull
+git pull upstream main
+git push
 ```
 
-Git combines your implementations with changes automatically. If it
-prints `CONFLICT` instead, the same lines have been edited — bring it to class
+`upstream` is the course repository your copy was created from; `origin`
+is your own, where the final `git push` stores everything. Git combines
+your implementations with the update automatically. If it prints
+`CONFLICT` instead, the same lines have been edited — bring it to class
 to resolve it together in a minute.
