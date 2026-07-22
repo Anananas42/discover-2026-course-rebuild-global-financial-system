@@ -6,7 +6,7 @@ import {
   Lightbulb,
   SquarePen,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { runTests } from '../api.ts';
 
@@ -74,11 +74,16 @@ function FileRow({ file, about }: { file: FileLink; about?: string }) {
 export function TaskCard({
   task,
   next,
+  focusSeq,
   onTestsRan,
 }: {
   task: GuideTask;
   /** Whether this is the next incomplete task — the one to work on. */
   next?: boolean;
+  /** Bumped when the hero's "Next task" button targets this card: open
+   * it and bring it into view. Runs on mount too, which covers the card
+   * mounting only after TaskList opens its collapsed stage. */
+  focusSeq?: number;
   onTestsRan: () => void;
 }) {
   const [filesOpen, setFilesOpen] = useState(false);
@@ -91,6 +96,13 @@ export function TaskCard({
   // its own — passing mid-session updates the pill in place (same rule
   // as the stage sections).
   const [open, setOpen] = useState(() => next || task.status === 'in-progress');
+  const rootEl = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (focusSeq === undefined) return;
+    setOpen(true);
+    // scroll-mt on the card keeps it clear of the sticky stage pill.
+    rootEl.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [focusSeq]);
   const curiositiesRead = allCuriositiesRead([task.id], useReadCuriosities());
   const gotoName = task.implement.path.split('/').pop() ?? task.implement.path;
 
@@ -108,6 +120,7 @@ export function TaskCard({
 
   return (
     <Collapsible
+      ref={rootEl}
       open={open}
       onOpenChange={setOpen}
       // No padding here: the trigger carries it, so the whole pill is
@@ -115,7 +128,7 @@ export function TaskCard({
       // bar; expanded, the card is a container, not a button. No margin
       // either: the stage rail segment in TaskList owns the spacing, so
       // the rail's color runs unbroken through the gaps between cards.
-      className={`block rounded-xl border border-line bg-surface ${open ? '' : 'hover:border-current/40'}`}
+      className={`block scroll-mt-24 rounded-xl border border-line bg-surface ${open ? '' : 'hover:border-current/40'}`}
     >
       {/* While open, a hairline under the row turns it into the card's
           title bar — without it the title reads as the first line of the

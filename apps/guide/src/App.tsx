@@ -15,7 +15,8 @@ import {
 import { ProjectIntro } from './components/ProjectIntro.tsx';
 import { SolarStorm } from './components/SolarStorm.tsx';
 import { SubmitControls } from './components/SubmitControls.tsx';
-import { TaskList } from './components/TaskList.tsx';
+import { nextIncompleteTask, TaskList } from './components/TaskList.tsx';
+import type { FocusRequest } from './components/TaskList.tsx';
 import { VscodeTips } from './components/VscodeTips.tsx';
 
 const REFRESH_INTERVAL = 3000;
@@ -23,7 +24,21 @@ const REFRESH_INTERVAL = 3000;
 export function App() {
   const [state, setState] = useState<GuideState | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  // The hero's "Next task" presses, relayed to the task list below.
+  const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
   const [theme, setTheme] = useTheme();
+
+  // The warm-up is the first curriculum stage. While it is unfinished
+  // the hero's only call to action is the next task; the financial
+  // system enters once the warm-up is done.
+  const nextTask =
+    (state && nextIncompleteTask(state.stages, state.tasks)) ?? null;
+  const warmupStage = state?.stages[0]?.stage;
+  const warmupDone =
+    state !== null &&
+    state.tasks
+      .filter(task => task.stage === warmupStage)
+      .every(task => task.status === 'passing');
 
   const refresh = useCallback(async () => {
     try {
@@ -96,6 +111,15 @@ export function App() {
             <ProjectIntro
               financialSystemUrl={state.financialSystemUrl}
               course={state.course}
+              warmupDone={warmupDone}
+              nextTask={nextTask}
+              onNextTask={() => {
+                if (!nextTask) return;
+                setFocusRequest(prev => ({
+                  id: nextTask.id,
+                  seq: (prev?.seq ?? 0) + 1,
+                }));
+              }}
               onSaved={refresh}
             />
           )}
@@ -108,6 +132,7 @@ export function App() {
               stages={state.stages}
               tasks={state.tasks}
               lastRunAt={state.lastRunAt}
+              focusRequest={focusRequest}
               onTestsRan={refresh}
               actions={
                 <SubmitControls course={state.course} onSubmitted={refresh} />

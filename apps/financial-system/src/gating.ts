@@ -1,9 +1,12 @@
 // What the workbench shows follows what the financial system can do: an
 // operation's button appears once its task's stub is replaced (the config
 // query carries the task map), and a persona tab appears once any of its
-// operations exist. The tool surfaces — Database and Log — are always
-// there: they are truthful even about an empty world. Until then the
-// guide, not the workbench, is where the next step is explained.
+// operations exist. The Central Bank is the exception and the landing
+// tab: the institution exists from the moment the system is initialized,
+// so its page is always there — books first, operations appearing task
+// by task. The tool surfaces — Database and Log — are always available
+// too, truthful even about an empty world, but they are raw views, never
+// the landing.
 
 import { TASK } from '@banks/shared/curriculum.ts';
 
@@ -11,14 +14,8 @@ import type { TabId } from './components/TabBar.tsx';
 
 export type TaskStatusMap = Record<string, boolean>;
 
-/** The tasks whose operations live on each persona tab. */
+/** The tasks whose operations live on each gated persona tab. */
 const TAB_TASKS: Partial<Record<TabId, string[]>> = {
-  'central-bank': [
-    TASK.lendToBank,
-    TASK.writeOffBankDebt,
-    TASK.transferReserves,
-    TASK.payBank,
-  ],
   'commercial-bank': [
     TASK.openBank,
     TASK.receiveRepayment,

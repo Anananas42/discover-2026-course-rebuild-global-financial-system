@@ -80,6 +80,23 @@ function StickyStagePill({ children }: { children: ReactNode }) {
   );
 }
 
+/** The first incomplete task in teaching order — the one to work on next. */
+export function nextIncompleteTask(
+  stages: CurriculumStage[],
+  tasks: GuideTask[]
+): GuideTask | undefined {
+  return stages
+    .flatMap(stage => tasks.filter(task => task.stage === stage.stage))
+    .find(task => task.status !== 'passing');
+}
+
+/** One press of the hero's "Next task" button: which task to reveal, and
+ * a sequence number so a repeated press on the same task still acts. */
+export interface FocusRequest {
+  id: string;
+  seq: number;
+}
+
 interface TaskListProps {
   stages: CurriculumStage[];
   tasks: GuideTask[];
@@ -87,6 +104,8 @@ interface TaskListProps {
   onTestsRan: () => void;
   /** Extra toolbar controls — the submit button and its settings. */
   actions?: ReactNode;
+  /** The hero's "Next task" press to honor, if any. */
+  focusRequest?: FocusRequest | null;
 }
 
 export function TaskList({
@@ -95,6 +114,7 @@ export function TaskList({
   lastRunAt,
   onTestsRan,
   actions,
+  focusRequest,
 }: TaskListProps) {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -131,11 +151,8 @@ export function TaskList({
   // The first stage with unfinished work is where the student is now.
   const currentStage = stages.find(stage => !isComplete(stage))?.stage;
 
-  // The first incomplete task in teaching order — the one to work on
-  // next; its card highlights the implement button.
-  const nextTaskId = stages
-    .flatMap(stage => stageTasks(stage))
-    .find(task => task.status !== 'passing')?.id;
+  // The next task's card highlights the implement button.
+  const nextTaskId = nextIncompleteTask(stages, tasks)?.id;
 
   // The toolbar button collapses everything — or, once everything is
   // collapsed, expands everything.
@@ -151,6 +168,25 @@ export function TaskList({
     }
     setOpens(defaults);
   }, [opens, tasks.length, stages, currentStage]);
+
+  // Honor the hero's "Next task" press: open the stage holding the task
+  // (the card inside opens and scrolls itself — see TaskCard's focusSeq).
+  // The seq guard keeps the periodic state refresh from re-opening a
+  // stage the student has since closed.
+  const handledFocus = useRef(0);
+  useEffect(() => {
+    if (!focusRequest || focusRequest.seq === handledFocus.current) return;
+    handledFocus.current = focusRequest.seq;
+    const stage = tasks.find(task => task.id === focusRequest.id)?.stage;
+    if (stage === undefined) return;
+    setOpens(prev => ({
+      ...(prev ??
+        Object.fromEntries(
+          stages.map(each => [each.stage, each.stage === currentStage])
+        )),
+      [stage]: true,
+    }));
+  }, [focusRequest, tasks, stages, currentStage]);
 
   return (
     <Section
@@ -331,6 +367,11 @@ export function TaskList({
                     <TaskCard
                       task={task}
                       next={task.id === nextTaskId}
+                      focusSeq={
+                        focusRequest?.id === task.id
+                          ? focusRequest.seq
+                          : undefined
+                      }
                       onTestsRan={onTestsRan}
                     />
                   </div>
