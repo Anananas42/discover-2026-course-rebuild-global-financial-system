@@ -39,6 +39,10 @@ export interface CurriculumStage {
    *  substituted. */
   announcement: string;
   title: string;
+  /** A short lede under the stage pill, before the tasks — the story of
+   *  what the student is here to do. Only the mission briefing carries
+   *  one; the mission stages open with their outcome line instead. */
+  intro?: string;
   /** What the economy can do once the stage's tasks are implemented;
    *  empty when there is nothing to say (stage 0), which renders no
    *  line. */
@@ -75,10 +79,13 @@ export const CURRICULUM: CurriculumStage[] = [
     subsystem: 'Mission briefing',
     announcement: '{country} reported for duty',
     title: 'Mission briefing',
-    // No outcome line: the briefing restores nothing in the economy,
-    // and its tasks' explainers already say what it is for.
+    // The intro replaces the outcome line: the briefing restores
+    // nothing in the economy, so there is no "when this works" to state
+    // — the lede sets the scene and points at the work instead.
     // Its stories speak in the briefing voice — headquarters issuing
     // orders — not the user-story voice of the mission stages below.
+    intro:
+      "Welcome to headquarters. Before the rebuild begins, this briefing drills the handful of moves every later task uses: open a task, write a few lines of code, run its tests. Finish all seven and your country's financial system unlocks.",
     outcome: '',
     tasks: [
       {
@@ -87,7 +94,7 @@ export const CURRICULUM: CurriculumStage[] = [
           'Send headquarters your status report — your first line of restored code, and your first passing test.',
         steps: [
           'Read the explainer above and mark it read.',
-          'Open the file below — this one time, the solution is written right above the gap.',
+          'Open the file below and read the documentation above the task — every task has some; this one time, it gives the exact line to write.',
           'Run the tests from this card and watch the task turn green.',
         ],
       },

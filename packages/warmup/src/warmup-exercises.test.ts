@@ -99,7 +99,7 @@ function standInDb(failingAccount?: string) {
           staged.set(account, balance);
         },
       });
-      // Only a block that ran to the end lands in the books.
+      // Only a block that ran to the end lands in the balances.
       for (const [account, balance] of staged) balances.set(account, balance);
       return result;
     },

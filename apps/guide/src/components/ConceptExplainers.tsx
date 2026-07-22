@@ -133,11 +133,11 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
     title: 'Reading and writing the database',
     body: (
       <p>
-        Your country's books will live in a real database. Your code never talks
-        to it directly — prebuilt repositories read and write it, one per table:{' '}
-        <Code>bankRepo.get(...)</Code>, <Code>accountRepo.setBalance(...)</Code>
-        . In this task a stand-in plays that role: ask it for one balance, hand
-        back its answer.
+        Your country's banks, accounts, and balances will live in a real
+        database. Your code never talks to it directly — prebuilt repositories
+        read and write it, one per table: <Code>bankRepo.get(...)</Code>,{' '}
+        <Code>accountRepo.setBalance(...)</Code>. In this task a stand-in plays
+        that role: ask it for one balance, hand back its answer.
       </p>
     ),
   },
@@ -147,8 +147,9 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
       <>
         <p>
           A payment is two writes — take from one account, give to another. If
-          the program dies between them, money has vanished and the books lie.
-          So writes that belong together travel in one transaction:
+          the program dies between them, money has vanished: one balance already
+          went down, the other never went up. So writes that belong together
+          travel in one transaction:
         </p>
         <pre className="overflow-x-auto rounded-lg border border-line bg-faint p-3 font-mono text-[13px] leading-relaxed">
           {`db.transaction(async tx => {

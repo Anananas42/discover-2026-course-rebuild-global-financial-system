@@ -352,6 +352,11 @@ export function TaskList({
                   is padding on the segments (not card margins), which
                   would collapse through the wrappers and break the line. */}
               <div className="ml-[28px]">
+                {stage.intro && (
+                  <div className={railSegment(passedPrefix > 0)}>
+                    <p className="pt-2.5 text-sm text-muted">{stage.intro}</p>
+                  </div>
+                )}
                 {stage.outcome && (
                   <div className={railSegment(passedPrefix > 0)}>
                     <p className="pt-2.5 text-sm text-muted">

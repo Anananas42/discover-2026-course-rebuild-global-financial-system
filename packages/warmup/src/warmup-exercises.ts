@@ -95,10 +95,12 @@ export function readInstructions(headquarters: {
 export function requireNonNegativeAmount(
   amount: Big
 ): Effect.Effect<Big, NegativeAmountError> {
-  // TASK 0.6: Refuse a negative amount
-  // TODO: implement task 0.6.
-  throw new NotImplementedError('0.6');
-  // ENDTASK 0.6
+  return Effect.gen(function* () {
+    // TASK 0.6: Refuse a negative amount
+    // TODO: implement task 0.6.
+    throw new NotImplementedError('0.6');
+    // ENDTASK 0.6
+  });
 }
 
 /** An account as the stand-in db knows it: a name and what it holds. */
@@ -124,8 +126,8 @@ export interface StandInDb {
  * Moves an amount between two accounts — two balance writes that must
  * never land alone: the sender's balance minus the amount, the
  * receiver's plus it. Wrap both in one `db.transaction(...)` call: if
- * the power dies between them, the books must show the move never
- * started.
+ * the power dies between them, both balances must read as if the move
+ * never started.
  */
 export function recordTransfer(
   db: StandInDb,
