@@ -352,7 +352,7 @@ describe('task 4.3: transferring between banks', () => {
     expect(secondBooks.totalDeposits.eq('800')).toBe(true);
   });
 
-  it("an interbank payment leaves a completed payment row in the sender's books", async () => {
+  it("an interbank payment leaves a completed payment row in the sender's database", async () => {
     const first = await bankWithReserves('First Bank', '1000');
     const second = await bankWithReserves('Second Bank', '0');
     const alice = await plantedAccount(first.id, 'Alice', '500');

@@ -3,22 +3,31 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { Button } from '@banks/shared/browser/Button.tsx';
+import { TASK } from '@banks/shared/curriculum.ts';
 
 // The onramp explainers: the seven concepts task 1.1 would otherwise
 // need all at once, each taught as a card inside the stage-0 task that
 // applies it — introduced and instantly used, never a wall of theory
-// upfront. Every card carries a mark-as-read button (the task-test
-// idiom: quiet until clicked, green after) — the click changes nothing
-// but is a conscious act of having read. Read-state is a display
-// preference like the theme — per browser, in localStorage, never in
-// course.json.
+// upfront. One more card sits on task 1.1 itself: how to work in the
+// financial system, taught on the first task that happens there. Every
+// card carries a mark-as-read button (the task-test idiom: quiet until
+// clicked, green after) — the click changes nothing but is a conscious
+// act of having read. Read-state is a display preference like the
+// theme — per browser, in localStorage, never in course.json.
 
 const STORAGE_KEY = 'guide-concepts-read';
 
 type ConceptId =
-  'loop' | 'big' | 'effect' | 'errors' | 'promises' | 'db' | 'transactions';
+  | 'loop'
+  | 'big'
+  | 'effect'
+  | 'errors'
+  | 'promises'
+  | 'db'
+  | 'transactions'
+  | 'workbench';
 
-/** Which explainers appear on which stage-0 task's card, in order. */
+/** Which explainers appear on which task's card, in order. */
 export const CONCEPTS_BY_TASK: Record<string, ConceptId[]> = {
   '0.1': ['loop'],
   '0.2': ['big'],
@@ -27,6 +36,7 @@ export const CONCEPTS_BY_TASK: Record<string, ConceptId[]> = {
   '0.5': ['promises'],
   '0.6': ['errors'],
   '0.7': ['transactions'],
+  [TASK.openBank]: ['workbench'],
 };
 
 function loadRead(): Set<string> {
@@ -140,6 +150,32 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
         <Code>accountRepo.setBalance(...)</Code>. In this task a stand-in plays
         that role: ask it for one balance, hand back its answer.
       </p>
+    ),
+  },
+  workbench: {
+    title: 'Where to look in the financial system',
+    body: (
+      <>
+        <p>
+          The financial system starts almost empty: the Central Bank tab, and
+          two raw views — Database and Log. Every operation you implement adds
+          its button. The Commercial Bank tab, with "Open a new bank" on it,
+          appears as soon as you start writing this task's code.
+        </p>
+        <p>
+          The Database tab is your map. It shows every table in the country,
+          live — after each click, look there for what changed. This task's
+          story names three new rows: the bank, its reserve account, and its own
+          account.
+        </p>
+        <p>
+          Your code writes those tables through the prebuilt repositories from
+          the briefing, one per table: <Code>db.banks</Code>,{' '}
+          <Code>db.accounts</Code>. Their methods live in{' '}
+          <Code>packages/db/src/bank-db.ts</Code> — open it and find the ones
+          you need, or type <Code>db.</Code> in the editor and read the list.
+        </p>
+      </>
     ),
   },
   transactions: {

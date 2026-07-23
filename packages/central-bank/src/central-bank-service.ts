@@ -4,7 +4,7 @@
 // create it — not from a pot, but by balance-sheet expansion: lending to
 // a bank credits the bank's reserve account (a liability of the central
 // bank) and records a claim on that bank (an asset) — a claim is the
-// lender's side of a loan. The books must always balance: total claims =
+// lender's side of a loan. The balance sheet must always balance: total claims =
 // banks' reserves + the central bank's equity.
 //
 // Lending charges the policy rate — the central bank interest rate, as
@@ -294,7 +294,7 @@ export class CentralBank {
    * Destroys money: a bank repays its debt, so its reserves are debited
    * and the claim on it shrinks by the same amount — both sides of the
    * balance sheet contract together. Returns the remaining debt; a claim
-   * repaid to zero disappears from the books. Refusal messages state the
+   * repaid to zero disappears from the balance sheet. Refusal messages state the
    * numbers to the currency's decimal places — CURRENCY (currency.ts)
    * carries them.
    */

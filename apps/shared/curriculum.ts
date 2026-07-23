@@ -172,7 +172,7 @@ export const CURRICULUM: CurriculumStage[] = [
       {
         id: TASK.openBank,
         story:
-          'As the central bank, I license a new commercial bank: I register its name and open its reserve account with me — and the new bank starts its fresh books with its own account.',
+          'As the central bank, I license a new commercial bank: I register its name and open its reserve account with me — and the new bank starts its fresh database with its own account.',
         steps: [
           'In the financial system, open the Commercial Bank tab and click "Open a new bank".',
           "Name your country's first bank.",
@@ -249,7 +249,7 @@ export const CURRICULUM: CurriculumStage[] = [
           'Open a second bank and lend it reserves.',
           'On the Central Bank tab, find "Transfer reserves" in the dashed Debug box and move some from one bank to the other.',
           'Check both reserve accounts at the central bank: the total never changed.',
-          "On the Commercial Bank tab, see both banks' balance sheets stop balancing: money moved with no payment behind it, so neither bank's books say why.",
+          "On the Commercial Bank tab, see both banks' balance sheets stop balancing: money moved with no payment behind it, so neither bank's records show why.",
           'Transfer the same amount back and watch both sheets balance again.',
         ],
       },

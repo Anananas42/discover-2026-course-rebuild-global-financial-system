@@ -195,8 +195,10 @@ export function TaskCard({
           </div>
         )}
 
-        {/* Stage-0 tasks teach a concept right where it is applied: the
-            explainer card sits between the prompt and the steps. */}
+        {/* A task with an attached concept teaches it right where it is
+            applied: the explainer card sits between the prompt and the
+            steps — the briefing's seven, and the workbench card on the
+            first task in the financial system. */}
         {CONCEPTS_BY_TASK[task.id] && (
           <div className="mt-3 grid gap-3">
             {CONCEPTS_BY_TASK[task.id]?.map(id => (

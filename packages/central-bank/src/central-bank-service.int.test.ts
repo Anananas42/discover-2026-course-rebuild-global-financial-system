@@ -48,7 +48,7 @@ describe('task 1.1: opening a new bank', () => {
     expect(books.reserveAccounts[0]?.balance.eq(0)).toBe(true);
   });
 
-  it("opens the bank's own account in the bank's books", async () => {
+  it("opens the bank's own account in the bank's own database", async () => {
     const bank = await Effect.runPromise(
       centralBank.registerBank({ name: 'First Bank' })
     );
