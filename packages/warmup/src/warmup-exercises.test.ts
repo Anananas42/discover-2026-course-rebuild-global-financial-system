@@ -85,7 +85,10 @@ describe('task 0.6: refusing a negative amount', () => {
 
 /** A stand-in database: 100 on the generators account, and a
  *  transaction that commits its writes together or — when a write
- *  throws — not at all. Writing to `failingAccount` cuts the power. */
+ *  throws — not at all. Writing to `failingAccount` cuts the power.
+ *  Committing takes one tick, like a real database over the wire, so
+ *  code that does not wait for the transaction reports done while the
+ *  balances are still unchanged. */
 function standInDb(failingAccount?: string) {
   const balances = new Map<string, Big>([['generators', new Big('100')]]);
   const db: StandInDb = {
@@ -99,6 +102,7 @@ function standInDb(failingAccount?: string) {
           staged.set(account, balance);
         },
       });
+      await new Promise<void>(resolve => setTimeout(resolve));
       // Only a block that ran to the end lands in the balances.
       for (const [account, balance] of staged) balances.set(account, balance);
       return result;
@@ -122,6 +126,21 @@ describe('task 0.7: moving money in one transaction', () => {
     );
     expect(balances.get('generators')?.eq('60')).toBe(true);
     expect(balances.get('antennas')?.eq('40')).toBe(true);
+  });
+
+  it('waits for the transaction to commit before reporting done', async () => {
+    const { db, balances } = standInDb();
+    await Effect.runPromise(
+      recordTransfer(db, {
+        from: generators,
+        to: antennas,
+        amount: new Big('40'),
+      })
+    );
+    expect(
+      balances.get('antennas')?.eq('40'),
+      'recordTransfer reported done while the transaction was still running — wait for it: yield* Effect.promise(() => db.transaction(...))'
+    ).toBe(true);
   });
 
   it('a power cut between the two writes leaves both accounts untouched', async () => {

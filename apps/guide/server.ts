@@ -25,6 +25,7 @@ import type {
   FileLink,
   GuideState,
   GuideTask,
+  LintFinding,
   Scenario,
   TaskResult,
   TaskStatus,
@@ -42,6 +43,16 @@ interface TaskMarker {
   absFile: string;
   line: number;
   body: string;
+}
+
+/** The relevant subset of oxlint's JSON output. */
+interface OxlintReport {
+  diagnostics?: {
+    message: string;
+    code: string;
+    filename?: string;
+    labels?: { span: { line: number } }[];
+  }[];
 }
 
 /** The relevant subset of vitest's JSON reporter output. */
@@ -167,6 +178,7 @@ createJsonServer(async (req, res) => {
         steps: taskById(draft.marker.id)?.steps ?? [],
         stage: draft.stage,
         scenarios: draft.scenarios,
+        lint: lastRun?.tasks[draft.marker.id]?.lint ?? [],
         ranAt: draft.ranAt,
         status,
         ...(await taskFiles(draft.marker)),
@@ -338,7 +350,79 @@ async function runPublicTests(taskId?: string): Promise<TestRun> {
       });
     }
   }
+  // The tests are only half the verdict: the repo's own lint rules run
+  // over the tested tasks' files too, because they see what vitest and
+  // the type checker both miss — above all a Promise started and never
+  // waited for. Findings ride on the task results they belong to.
+  const lint = await lintTasks(taskId);
+  for (const result of Object.values(tasks)) result.lint = [];
+  for (const [id, findings] of Object.entries(lint)) {
+    (tasks[id] ??= { at, scenarios: [] }).lint = findings;
+  }
   return { at, tasks };
+}
+
+// oxlint speaks tool ("add void operator to ignore" — never the fix
+// here); the rules students actually meet get the course's voice, the
+// rest fall back to oxlint's message.
+const LINT_MESSAGES: Record<string, string> = {
+  'typescript(no-floating-promises)':
+    'This code starts a Promise and never waits for it — wrap the call in yield* Effect.promise(() => ...).',
+};
+
+/**
+ * Lint findings for the students' task code, mapped to the tasks whose
+ * regions hold them (findings in prebuilt code, which CI keeps clean,
+ * are dropped). The rule set is the repo's own .oxlintrc.json — exactly
+ * what `pnpm check` runs. A crashed or unparsable lint run yields no
+ * findings rather than blocking the test results.
+ */
+async function lintTasks(
+  taskId?: string
+): Promise<Record<string, LintFinding[]>> {
+  const markers = (await scanTasks()).filter(
+    marker => taskId === undefined || marker.id === taskId
+  );
+  const files = [...new Set(markers.map(marker => marker.absFile))];
+  if (files.length === 0) return {};
+  const result = await runChild(
+    [
+      path.join(ROOT, 'node_modules/oxlint/bin/oxlint'),
+      '--type-aware',
+      '--format',
+      'json',
+      ...files,
+    ],
+    60_000
+  );
+  let report: OxlintReport;
+  try {
+    report = JSON.parse(result.stdout) as OxlintReport;
+  } catch {
+    return {};
+  }
+  const findings: Record<string, LintFinding[]> = {};
+  for (const diagnostic of report.diagnostics ?? []) {
+    const line = diagnostic.labels?.[0]?.span.line;
+    if (line === undefined || !diagnostic.filename) continue;
+    const abs = path.resolve(ROOT, diagnostic.filename);
+    const marker = markers.find(
+      each =>
+        each.absFile === abs &&
+        line > each.line &&
+        // The body's trailing newline makes its split one longer than
+        // its line count — the region's last line falls out exactly.
+        line < each.line + each.body.split('\n').length
+    );
+    if (!marker) continue;
+    (findings[marker.id] ??= []).push({
+      message: LINT_MESSAGES[diagnostic.code] ?? diagnostic.message,
+      path: path.relative(ROOT, abs).replaceAll(path.sep, '/'),
+      abs,
+      line,
+    });
+  }
+  return findings;
 }
 
 function firstErrorLine(messages: string[] | undefined): string | null {

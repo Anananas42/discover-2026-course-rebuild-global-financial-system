@@ -13,6 +13,16 @@ export interface Scenario {
   error: string | null;
 }
 
+/** A lint finding inside a task's region: the repo's own lint rules run
+ *  with the tests, because they see what the type checker cannot —
+ *  above all a Promise started and never waited for. */
+export interface LintFinding {
+  message: string;
+  path: string;
+  abs: string;
+  line: number;
+}
+
 export interface FileLink {
   path: string;
   abs: string;
@@ -31,6 +41,8 @@ export interface GuideTask {
   /** The curriculum stage this task belongs to — the id's major part. */
   stage: number;
   scenarios: Scenario[];
+  /** Lint findings in this task's region, from its last test run. */
+  lint: LintFinding[];
   /** When this task's scenarios last ran — results can age per task. */
   ranAt: number | null;
   status: TaskStatus;
@@ -57,6 +69,8 @@ export interface GuideState {
 export interface TaskResult {
   at: number;
   scenarios: Scenario[];
+  /** Absent in results persisted before the guide linted. */
+  lint?: LintFinding[];
 }
 
 /** POST /api/run response; also persisted to .test-results.json. */

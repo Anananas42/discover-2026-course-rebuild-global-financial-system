@@ -7,14 +7,20 @@ import { Button } from '@banks/shared/browser/Button.tsx';
 // initialize button the finished briefing reveals in the hero — and
 // offers a ride up to it. Same card shell as the concept explainers,
 // but its one action is the scroll, so there is no mark-as-read.
-export function InitializeExplainer() {
+// While the hero's CTA is the initialize button, the ride-up button
+// carries the same glow — the two ends of one path light up together.
+export function InitializeExplainer({ glow }: { glow: boolean }) {
   return (
     <div className="rounded-lg border border-line px-5 py-4">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <h4 className="text-[15px] font-semibold">Enter the real world</h4>
         <Button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="text-muted hover:text-ink"
+          className={
+            glow
+              ? 'font-semibold shadow-[0_0_10px] shadow-brand-vivid/60'
+              : 'text-muted hover:text-ink'
+          }
         >
           <ArrowUp size={15} aria-hidden /> Take me there
         </Button>

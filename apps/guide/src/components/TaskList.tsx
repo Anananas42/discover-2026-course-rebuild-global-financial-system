@@ -106,6 +106,9 @@ interface TaskListProps {
   actions?: ReactNode;
   /** The hero's "Next task" press to honor, if any. */
   focusRequest?: FocusRequest | null;
+  /** The hero's CTA is the initialize button right now — relayed to the
+   * bridge card so its ride-up button echoes the glow. */
+  initializePending?: boolean;
 }
 
 export function TaskList({
@@ -115,6 +118,7 @@ export function TaskList({
   onTestsRan,
   actions,
   focusRequest,
+  initializePending,
 }: TaskListProps) {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -352,9 +356,20 @@ export function TaskList({
                   is padding on the segments (not card margins), which
                   would collapse through the wrappers and break the line. */}
               <div className="ml-[28px]">
+                {/* The briefing's lede reads at story size and full ink —
+                    it is the stage's prompt, not a side note — and its
+                    payoff line stands apart: semibold, in the accent that
+                    marks the financial system CTA it promises. */}
                 {stage.intro && (
                   <div className={railSegment(passedPrefix > 0)}>
-                    <p className="pt-2.5 text-sm text-muted">{stage.intro}</p>
+                    <p className="pt-2.5 text-base leading-relaxed">
+                      {stage.intro}
+                    </p>
+                    {stage.introPayoff && (
+                      <p className="mt-1.5 text-base font-semibold text-accent">
+                        {stage.introPayoff}
+                      </p>
+                    )}
                   </div>
                 )}
                 {stage.outcome && (
@@ -377,6 +392,7 @@ export function TaskList({
                           ? focusRequest.seq
                           : undefined
                       }
+                      initializePending={initializePending}
                       onTestsRan={onTestsRan}
                     />
                   </div>

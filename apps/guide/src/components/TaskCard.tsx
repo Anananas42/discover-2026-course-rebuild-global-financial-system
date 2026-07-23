@@ -41,8 +41,8 @@ import {
 // underneath — rarely needed, nice to see). The open card is three
 // bands under a title bar: the narrative (story and steps, tight
 // rhythm), the action row (extra air above), and the depth band —
-// test-result and context disclosures with curiosities lying open
-// beneath, pushed well clear so it reads as an appendix.
+// test-result, lint, and context disclosures with curiosities lying
+// open beneath, pushed well clear so it reads as an appendix.
 
 const STATUS_LABEL: Record<TaskStatus, string> = {
   'not-started': 'not started',
@@ -78,6 +78,7 @@ export function TaskCard({
   task,
   next,
   focusSeq,
+  initializePending,
   onTestsRan,
 }: {
   task: GuideTask;
@@ -87,10 +88,14 @@ export function TaskCard({
    * it and bring it into view. Runs on mount too, which covers the card
    * mounting only after TaskList opens its collapsed stage. */
   focusSeq?: number;
+  /** The hero's CTA is "Initialize your financial system" right now —
+   * the bridge card's ride-up button echoes its glow. */
+  initializePending?: boolean;
   onTestsRan: () => void;
 }) {
   const [filesOpen, setFilesOpen] = useState(false);
   const [testsOpen, setTestsOpen] = useState(false);
+  const [lintOpen, setLintOpen] = useState(false);
   const [running, setRunning] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
   // Decided once, on first render: only the next task and tasks with
@@ -186,7 +191,7 @@ export function TaskCard({
             reveals in the hero, and scrolls back up to it. */}
         {task.id === TASK.openBank && (
           <div className="mt-3 grid gap-3">
-            <InitializeExplainer />
+            <InitializeExplainer glow={initializePending ?? false} />
           </div>
         )}
 
@@ -273,10 +278,11 @@ export function TaskCard({
         )}
 
         {/* The depth band: everything below the actions is optional —
-            test results, context files, curiosities. One group, pushed
-            well clear of the buttons, so it reads as the card's appendix
-            rather than more task. */}
+            test results, lint findings, context files, curiosities. One
+            group, pushed well clear of the buttons, so it reads as the
+            card's appendix rather than more task. */}
         {(task.scenarios.length > 0 ||
+          task.lint.length > 0 ||
           task.context.length > 0 ||
           CURIOSITIES_BY_TASK[task.id]) && (
           <div className="mt-6">
@@ -326,10 +332,46 @@ export function TaskCard({
               </Collapsible>
             )}
 
+            {/* The lint disclosure only exists while the last run found
+                something, so its appearing at all is the signal — the
+                warn-colored label says "open me" where tests/context
+                stay quiet. The linter sees what the tests cannot (a
+                Promise started and never waited for, above all);
+                advisory, never part of pass/fail. */}
+            {task.lint.length > 0 && (
+              <Collapsible open={lintOpen} onOpenChange={setLintOpen}>
+                <CollapsibleTrigger
+                  className={`flex cursor-pointer items-baseline gap-1 text-xs font-semibold tracking-wider text-warn uppercase hover:text-ink ${task.scenarios.length > 0 ? 'mt-2.5' : ''}`}
+                >
+                  <ChevronRight
+                    size={13}
+                    className={`self-center transition-transform ${lintOpen ? 'rotate-90' : ''}`}
+                    aria-hidden
+                  />
+                  lint
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="mt-2 ml-5 space-y-1 border-l border-line pl-4 text-sm">
+                    {task.lint.map(finding => (
+                      <p key={`${finding.path}:${finding.line}`}>
+                        {finding.message}{' '}
+                        <a
+                          className="font-mono text-[11px] text-muted hover:text-ink hover:underline"
+                          href={vscodeHref(finding.abs, finding.line)}
+                        >
+                          {finding.path}:{finding.line}
+                        </a>
+                      </p>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
             {task.context.length > 0 && (
               <Collapsible open={filesOpen} onOpenChange={setFilesOpen}>
                 <CollapsibleTrigger
-                  className={`flex cursor-pointer items-baseline gap-1 text-xs font-semibold tracking-wider text-muted uppercase hover:text-ink ${task.scenarios.length > 0 ? 'mt-2.5' : ''}`}
+                  className={`flex cursor-pointer items-baseline gap-1 text-xs font-semibold tracking-wider text-muted uppercase hover:text-ink ${task.scenarios.length > 0 || task.lint.length > 0 ? 'mt-2.5' : ''}`}
                 >
                   <ChevronRight
                     size={13}
@@ -349,7 +391,7 @@ export function TaskCard({
             )}
             {CURIOSITIES_BY_TASK[task.id] && (
               <div
-                className={`grid gap-3 ${task.scenarios.length > 0 || task.context.length > 0 ? 'mt-3' : ''}`}
+                className={`grid gap-3 ${task.scenarios.length > 0 || task.lint.length > 0 || task.context.length > 0 ? 'mt-3' : ''}`}
               >
                 {CURIOSITIES_BY_TASK[task.id]?.map(id => (
                   <Curiosity key={id} id={id} />

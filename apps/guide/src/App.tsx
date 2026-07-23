@@ -146,6 +146,9 @@ export function App() {
                 tasks={state.tasks}
                 lastRunAt={state.lastRunAt}
                 focusRequest={focusRequest}
+                initializePending={
+                  briefingDone && !courseConfigured(state.course)
+                }
                 onTestsRan={refresh}
                 actions={
                   <SubmitControls course={state.course} onSubmitted={refresh} />

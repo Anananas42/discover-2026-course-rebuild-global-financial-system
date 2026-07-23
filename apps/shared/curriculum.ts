@@ -43,6 +43,9 @@ export interface CurriculumStage {
    *  what the student is here to do. Only the mission briefing carries
    *  one; the mission stages open with their outcome line instead. */
   intro?: string;
+  /** The intro's closing promise, rendered set apart and emphasized:
+   *  what finishing the stage unlocks. */
+  introPayoff?: string;
   /** What the economy can do once the stage's tasks are implemented;
    *  empty when there is nothing to say (stage 0), which renders no
    *  line. */
@@ -85,7 +88,9 @@ export const CURRICULUM: CurriculumStage[] = [
     // Its stories speak in the briefing voice — headquarters issuing
     // orders — not the user-story voice of the mission stages below.
     intro:
-      "Welcome to headquarters. Before the rebuild begins, this briefing drills the handful of moves every later task uses: open a task, write a few lines of code, run its tests. Finish all seven and your country's financial system unlocks.",
+      'Welcome to headquarters. Before the rebuild begins, this briefing drills the handful of moves every later task uses: open a task, write a few lines of code, run its tests.',
+    introPayoff:
+      "Finish all seven and your country's financial system unlocks.",
     outcome: '',
     tasks: [
       {
