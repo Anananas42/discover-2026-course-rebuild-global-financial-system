@@ -20,14 +20,14 @@ import { api } from '../api.ts';
 // to read and write the books. Parsed live from source on the server
 // (db-api-reference.ts), so it can never drift from the real classes.
 // One group per repo, folding independently; a click copies a
-// ready-to-paste call, `bankRepo.create({ name })`. It sits above the
+// ready-to-paste call, `commercialBankRepo.create({ name })`. It sits above the
 // live tables as the "how to reach this data" companion to the "what is
 // in it" god view.
 
 type Groups = Awaited<ReturnType<typeof api.debug.dbApi.query>>;
 type Method = Groups[number]['methods'][number];
 
-/** `bankRepo.name({ param, param })` — the call with parameter names
+/** `commercialBankRepo.name({ param, param })` — the call with parameter names
  *  only; object-input methods (all repo methods) show their braces. */
 function callText(repo: string, method: Method): string {
   const names = method.params.map(p => p.name).join(', ');

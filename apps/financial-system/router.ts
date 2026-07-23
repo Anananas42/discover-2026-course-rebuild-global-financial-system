@@ -69,7 +69,7 @@ async function systemBalanced(): Promise<boolean> {
     return false;
   }
   const zero = new Big(0);
-  const banks = await db.banks.list();
+  const banks = await db.commercialBanks.list();
   for (const bank of banks) {
     const books = await runEffect(
       commercialBanks.balanceSheet({ bankId: bank.id })
@@ -138,7 +138,7 @@ export const appRouter = t.router({
 
   banks: t.router({
     list: procedure.query(async () => {
-      const banks = await db.banks.list();
+      const banks = await db.commercialBanks.list();
       /** Each bank with its BIC — how payment messages name it. */
       return banks.map(bank => ({ ...bank, bic: bicFor(bank.id) }));
     }),

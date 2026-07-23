@@ -40,7 +40,7 @@ import Big from 'big.js';
 import { Effect } from 'effect';
 
 import { randomAccountNumber } from '@banks/db/account-number.ts';
-import type { Account, Bank, Claim, Db } from '@banks/db/bank-db.ts';
+import type { Account, CommercialBank, Claim, Db } from '@banks/db/bank-db.ts';
 
 import {
   DuplicateBankNameError,
@@ -143,10 +143,13 @@ export class CentralBank {
    */
   registerBank(input: {
     name: string;
-  }): Effect.Effect<Bank, InvalidBankNameError | DuplicateBankNameError> {
+  }): Effect.Effect<
+    CommercialBank,
+    InvalidBankNameError | DuplicateBankNameError
+  > {
     const { name } = input;
     const db = this.db;
-    const bankRepo = this.db.banks;
+    const commercialBankRepo = this.db.commercialBanks;
     return Effect.gen(function* () {
       // TASK 1.1: Open a new bank
       // TODO: implement task 1.1.
@@ -171,7 +174,7 @@ export class CentralBank {
   }): Effect.Effect<Big, UnknownBankError | InvalidAmountError> {
     const { bankId, amount } = input;
     const db = this.db;
-    const bankRepo = this.db.banks;
+    const commercialBankRepo = this.db.commercialBanks;
     const claimRepo = this.db.claims;
     const requireReserveAccount = this.requireReserveAccount.bind(this);
     const requireOwnAccount = this.requireOwnAccount.bind(this);
@@ -329,7 +332,7 @@ export class CentralBank {
   balanceSheet(): Effect.Effect<CentralBankBalanceSheet> {
     const accountRepo = this.db.accounts;
     const claimRepo = this.db.claims;
-    const bankRepo = this.db.banks;
+    const commercialBankRepo = this.db.commercialBanks;
     return Effect.gen(function* () {
       const ownAccount = yield* Effect.promise(() =>
         accountRepo.getByOwner({
@@ -346,7 +349,7 @@ export class CentralBank {
       const rawClaims = yield* Effect.promise(() =>
         claimRepo.list({ books: 'central-bank' })
       );
-      const banks = yield* Effect.promise(() => bankRepo.list());
+      const banks = yield* Effect.promise(() => commercialBankRepo.list());
       const nameById = new Map(banks.map(bank => [String(bank.id), bank.name]));
       const claims = rawClaims.map(claim => ({
         ...claim,
@@ -452,7 +455,7 @@ export class CentralBank {
    * lean on the helper — the refusal still lives in the signature.
    */
   private requireReserves(
-    bank: Bank,
+    bank: CommercialBank,
     reserve: Account,
     amount: Big
   ): Effect.Effect<void, InsufficientReservesError> {
@@ -474,10 +477,14 @@ export class CentralBank {
    * shares. Task 2.1 writes this lookup out by hand once; every later
    * task leans on the helper — the check still lives in the signature.
    */
-  private requireBank(bankId: number): Effect.Effect<Bank, UnknownBankError> {
-    const bankRepo = this.db.banks;
+  private requireBank(
+    bankId: number
+  ): Effect.Effect<CommercialBank, UnknownBankError> {
+    const commercialBankRepo = this.db.commercialBanks;
     return Effect.gen(function* () {
-      const bank = yield* Effect.promise(() => bankRepo.get({ id: bankId }));
+      const bank = yield* Effect.promise(() =>
+        commercialBankRepo.get({ id: bankId })
+      );
       if (!bank) return yield* Effect.fail(new UnknownBankError({ bankId }));
       return bank;
     });
@@ -488,7 +495,7 @@ export class CentralBank {
    * expense, central-bank payments, and forgiven debts land. Its absence
    * is corrupted state (opening the bank creates it), so it is a defect.
    */
-  private requireBankOwnAccount(bank: Bank): Effect.Effect<Account> {
+  private requireBankOwnAccount(bank: CommercialBank): Effect.Effect<Account> {
     const accountRepo = this.db.accounts;
     return Effect.gen(function* () {
       const accounts = yield* Effect.promise(() =>
@@ -538,7 +545,7 @@ export class CentralBank {
    * (registration always opens one), so it is a defect, not a domain
    * error.
    */
-  private requireReserveAccount(bank: Bank): Effect.Effect<Account> {
+  private requireReserveAccount(bank: CommercialBank): Effect.Effect<Account> {
     const accountRepo = this.db.accounts;
     return Effect.gen(function* () {
       const account = yield* Effect.promise(() =>

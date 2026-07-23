@@ -11,7 +11,7 @@ import {
 } from '@banks/central-bank/bank-errors.ts';
 import { CentralBank } from '@banks/central-bank/central-bank-service.ts';
 import { randomAccountNumber } from '@banks/db/account-number.ts';
-import type { Account, Bank, Db } from '@banks/db/bank-db.ts';
+import type { Account, CommercialBank, Db } from '@banks/db/bank-db.ts';
 import { connect } from '@banks/db/database.ts';
 import { randomPersonalId } from '@banks/db/person-id.ts';
 
@@ -46,7 +46,10 @@ afterAll(async () => {
 });
 
 /** A registered bank with the given reserves at the central bank. */
-async function bankWithReserves(name: string, reserves: string): Promise<Bank> {
+async function bankWithReserves(
+  name: string,
+  reserves: string
+): Promise<CommercialBank> {
   const bank = await Effect.runPromise(centralBank.registerBank({ name }));
   if (reserves !== '0') {
     await Effect.runPromise(

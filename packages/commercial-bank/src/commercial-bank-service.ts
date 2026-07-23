@@ -57,7 +57,7 @@ import {
 import { CURRENCY } from '@banks/central-bank/currency.ts';
 import { interestOn, parseRate } from '@banks/central-bank/policy-rate.ts';
 import { randomAccountNumber } from '@banks/db/account-number.ts';
-import type { Account, Bank, Claim, Db } from '@banks/db/bank-db.ts';
+import type { Account, CommercialBank, Claim, Db } from '@banks/db/bank-db.ts';
 import { randomPersonalId } from '@banks/db/person-id.ts';
 
 import {
@@ -77,7 +77,7 @@ import type { PaymentMessage } from './payment-message.ts';
 import { DEFAULT_INTEREST_RATE, INTEREST_RATE_KEY } from './lending-policy.ts';
 
 export interface BankBalanceSheet {
-  bank: Bank;
+  bank: CommercialBank;
   /** Liabilities: the clients' deposit accounts. */
   accounts: Account[];
   /** The bank's own account in its own books — its equity: interest
@@ -111,7 +111,7 @@ export interface Client {
 
 export interface ClientAccount {
   account: Account;
-  bank: Bank;
+  bank: CommercialBank;
   /** What the client still owes the bank on their loan. */
   debt: Big;
 }
@@ -505,7 +505,7 @@ export class CommercialBanks {
    * BIC, built with ibanFor and bicFor (iban.ts).
    */
   interbankTransfer(input: {
-    senderBank: Bank;
+    senderBank: CommercialBank;
     sender: Account;
     toBankId: number;
     receiver: Account;
@@ -608,11 +608,11 @@ export class CommercialBanks {
   /** Every client account in the country, across all banks. The banks'
    *  own accounts are not client accounts and stay out. */
   listClients(): Effect.Effect<Client[]> {
-    const bankRepo = this.db.banks;
+    const commercialBankRepo = this.db.commercialBanks;
     const accountRepo = this.db.accounts;
     const claimRepo = this.db.claims;
     return Effect.gen(function* () {
-      const banks = yield* Effect.promise(() => bankRepo.list());
+      const banks = yield* Effect.promise(() => commercialBankRepo.list());
       const clients: Client[] = [];
       for (const bank of banks) {
         const accounts = (yield* Effect.promise(() =>
@@ -684,13 +684,13 @@ export class CommercialBanks {
    *  id marks institutions' own accounts — it never identifies a person. */
   private findPersonAccounts(
     personId: string
-  ): Effect.Effect<{ bank: Bank; account: Account }[]> {
-    const bankRepo = this.db.banks;
+  ): Effect.Effect<{ bank: CommercialBank; account: Account }[]> {
+    const commercialBankRepo = this.db.commercialBanks;
     const accountRepo = this.db.accounts;
     return Effect.gen(function* () {
       if (personId === '') return [];
-      const banks = yield* Effect.promise(() => bankRepo.list());
-      const found: { bank: Bank; account: Account }[] = [];
+      const banks = yield* Effect.promise(() => commercialBankRepo.list());
+      const found: { bank: CommercialBank; account: Account }[] = [];
       for (const bank of banks) {
         const accounts = yield* Effect.promise(() =>
           accountRepo.listByPersonId({ books: bank.id, personId })
@@ -771,10 +771,14 @@ export class CommercialBanks {
    * A registered bank, or the refusal every bank-taking operation
    * shares — the same helper the central bank keeps.
    */
-  private requireBank(bankId: number): Effect.Effect<Bank, UnknownBankError> {
-    const bankRepo = this.db.banks;
+  private requireBank(
+    bankId: number
+  ): Effect.Effect<CommercialBank, UnknownBankError> {
+    const commercialBankRepo = this.db.commercialBanks;
     return Effect.gen(function* () {
-      const bank = yield* Effect.promise(() => bankRepo.get({ id: bankId }));
+      const bank = yield* Effect.promise(() =>
+        commercialBankRepo.get({ id: bankId })
+      );
       if (!bank) return yield* Effect.fail(new UnknownBankError({ bankId }));
       return bank;
     });
@@ -812,7 +816,7 @@ export class CommercialBanks {
    * the central bank's books the way the reserve requirement does.
    */
   private requireSettlementCover(
-    bank: Bank,
+    bank: CommercialBank,
     amount: Big
   ): Effect.Effect<void, InsufficientReservesError> {
     const accountRepo = this.db.accounts;
@@ -884,7 +888,7 @@ export class CommercialBanks {
     bankId: number;
     accountId: number;
   }): Effect.Effect<
-    { account: Account; bank: Bank },
+    { account: Account; bank: CommercialBank },
     UnknownBankError | UnknownAccountError
   > {
     const { bankId, accountId } = input;

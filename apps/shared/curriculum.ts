@@ -176,7 +176,7 @@ export const CURRICULUM: CurriculumStage[] = [
         steps: [
           'In the financial system, open the Commercial Bank tab and click "Open a new bank".',
           "Name your country's first bank.",
-          'In the Database tab, find your bank in the banks table under Central bank, its reserve account in the accounts table, and its own account in the section named after your bank.',
+          'In the Database tab, find your bank in the commercial_banks table under Central bank, its reserve account in the accounts table, and its own account in the section named after your bank.',
         ],
       },
     ],

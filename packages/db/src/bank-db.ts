@@ -45,14 +45,14 @@ export type Books = 'central-bank' | number;
  *  set for everyday calls; `Db.transaction` hands out a second set bound
  *  to one open transaction. */
 export interface Repos {
-  banks: BankRepo;
+  commercialBanks: CommercialBankRepo;
   accounts: AccountRepo;
   claims: ClaimRepo;
   payments: PaymentRepo;
   settings: SettingRepo;
 }
 
-export interface Bank {
+export interface CommercialBank {
   id: number;
   name: string;
 }
@@ -110,7 +110,7 @@ interface LedgerRows {
 /** The whole system's rows, verbatim — what `saveSnapshot` stores and
  *  `restoreSnapshot` brings back, ids included. */
 interface StateSnapshot {
-  banks: Bank[];
+  commercialBanks: CommercialBank[];
   ledgers: { books: Books; rows: LedgerRows }[];
 }
 
@@ -143,12 +143,14 @@ abstract class Repo {
   }
 }
 
-/** The bank registry — a single table in the central bank's schema. */
-export class BankRepo extends Repo {
+/** The register of licensed commercial banks — a single table, living
+ *  in the central bank's schema: only the central bank knows which
+ *  banks exist. */
+export class CommercialBankRepo extends Repo {
   /** Registers the bank and creates its (empty) books. */
-  async create({ name }: { name: string }): Promise<Bank> {
+  async create({ name }: { name: string }): Promise<CommercialBank> {
     const row = await this.scoped('central-bank')
-      .insertInto('banks')
+      .insertInto('commercial_banks')
       .values({ name })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -156,25 +158,29 @@ export class BankRepo extends Repo {
     return row;
   }
 
-  async get({ id }: { id: number }): Promise<Bank | undefined> {
+  async get({ id }: { id: number }): Promise<CommercialBank | undefined> {
     return this.scoped('central-bank')
-      .selectFrom('banks')
+      .selectFrom('commercial_banks')
       .selectAll()
       .where('id', '=', id)
       .executeTakeFirst();
   }
 
-  async getByName({ name }: { name: string }): Promise<Bank | undefined> {
+  async getByName({
+    name,
+  }: {
+    name: string;
+  }): Promise<CommercialBank | undefined> {
     return this.scoped('central-bank')
-      .selectFrom('banks')
+      .selectFrom('commercial_banks')
       .selectAll()
       .where('name', '=', name)
       .executeTakeFirst();
   }
 
-  async list(): Promise<Bank[]> {
+  async list(): Promise<CommercialBank[]> {
     return this.scoped('central-bank')
-      .selectFrom('banks')
+      .selectFrom('commercial_banks')
       .selectAll()
       .orderBy('id')
       .execute();
@@ -492,7 +498,7 @@ export class SettingRepo extends Repo {
  *  methods that power the Database view, its reset button, and the
  *  revert to the last balanced state. */
 export class Db implements Repos {
-  readonly banks: BankRepo;
+  readonly commercialBanks: CommercialBankRepo;
   readonly accounts: AccountRepo;
   readonly claims: ClaimRepo;
   readonly payments: PaymentRepo;
@@ -501,7 +507,7 @@ export class Db implements Repos {
 
   constructor(dbConnection: Kysely<Database>) {
     this.dbConnection = dbConnection;
-    this.banks = new BankRepo(dbConnection);
+    this.commercialBanks = new CommercialBankRepo(dbConnection);
     this.accounts = new AccountRepo(dbConnection);
     this.claims = new ClaimRepo(dbConnection);
     this.payments = new PaymentRepo(dbConnection);
@@ -517,7 +523,7 @@ export class Db implements Repos {
   async transaction<T>(fn: (tx: Repos) => Promise<T>): Promise<T> {
     return this.dbConnection.transaction().execute(trx =>
       fn({
-        banks: new BankRepo(trx),
+        commercialBanks: new CommercialBankRepo(trx),
         accounts: new AccountRepo(trx),
         claims: new ClaimRepo(trx),
         payments: new PaymentRepo(trx),
@@ -528,14 +534,14 @@ export class Db implements Repos {
 
   /** Every institution's books, verbatim — amounts in minor units. */
   async dump(): Promise<DumpedBooks[]> {
-    const banks = await this.banks.list();
+    const banks = await this.commercialBanks.list();
     const result: DumpedBooks[] = [
       {
         institution: 'Central bank',
         schema: CENTRAL_BANK_SCHEMA,
         tables: [
           {
-            name: 'banks',
+            name: 'commercial_banks',
             columns: ['id', 'name'],
             rows: banks.map(bank => [String(bank.id), bank.name]),
           },
@@ -631,7 +637,7 @@ export class Db implements Repos {
   private async wipe(trx: Kysely<Database>): Promise<void> {
     const banks = await trx
       .withSchema(CENTRAL_BANK_SCHEMA)
-      .selectFrom('banks')
+      .selectFrom('commercial_banks')
       .select('id')
       .execute();
     for (const bank of banks) {
@@ -639,7 +645,7 @@ export class Db implements Repos {
         trx
       );
     }
-    await sql`TRUNCATE ${sql.id(CENTRAL_BANK_SCHEMA)}.banks, ${sql.id(CENTRAL_BANK_SCHEMA)}.accounts, ${sql.id(CENTRAL_BANK_SCHEMA)}.claims, ${sql.id(CENTRAL_BANK_SCHEMA)}.payments, ${sql.id(CENTRAL_BANK_SCHEMA)}.settings RESTART IDENTITY`.execute(
+    await sql`TRUNCATE ${sql.id(CENTRAL_BANK_SCHEMA)}.commercial_banks, ${sql.id(CENTRAL_BANK_SCHEMA)}.accounts, ${sql.id(CENTRAL_BANK_SCHEMA)}.claims, ${sql.id(CENTRAL_BANK_SCHEMA)}.payments, ${sql.id(CENTRAL_BANK_SCHEMA)}.settings RESTART IDENTITY`.execute(
       trx
     );
   }
@@ -657,7 +663,7 @@ export class Db implements Repos {
       .execute(async (trx): Promise<StateSnapshot> => {
         const banks = await trx
           .withSchema(CENTRAL_BANK_SCHEMA)
-          .selectFrom('banks')
+          .selectFrom('commercial_banks')
           .selectAll()
           .orderBy('id')
           .execute();
@@ -673,7 +679,7 @@ export class Db implements Repos {
             rows: await this.readBooks(trx, bank.id),
           });
         }
-        return { banks, ledgers };
+        return { commercialBanks: banks, ledgers };
       });
     await sql`
       INSERT INTO public.state_snapshot (id, data)
@@ -698,20 +704,20 @@ export class Db implements Repos {
     // concurrent writers either before the wipe or after the commit.
     await this.dbConnection.transaction().execute(async trx => {
       await this.wipe(trx);
-      if (snapshot.banks.length > 0) {
+      if (snapshot.commercialBanks.length > 0) {
         await trx
           .withSchema(CENTRAL_BANK_SCHEMA)
-          .insertInto('banks')
-          .values(snapshot.banks)
+          .insertInto('commercial_banks')
+          .values(snapshot.commercialBanks)
           .execute();
       }
-      for (const bank of snapshot.banks) {
+      for (const bank of snapshot.commercialBanks) {
         await ensureBooks(trx, bank.id);
       }
       for (const ledger of snapshot.ledgers) {
         await this.restoreBooks(trx, ledger.books, ledger.rows);
       }
-      await this.restartSequence(trx, CENTRAL_BANK_SCHEMA, 'banks');
+      await this.restartSequence(trx, CENTRAL_BANK_SCHEMA, 'commercial_banks');
     });
     return true;
   }

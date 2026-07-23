@@ -146,7 +146,8 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
       <p>
         Your country's banks, accounts, and balances will live in a real
         database. Your code never talks to it directly — prebuilt repositories
-        read and write it, one per table: <Code>bankRepo.get(...)</Code>,{' '}
+        read and write it, one per table:{' '}
+        <Code>commercialBankRepo.get(...)</Code>,{' '}
         <Code>accountRepo.setBalance(...)</Code>. In this task a stand-in plays
         that role: ask it for one balance, hand back its answer.
       </p>
@@ -170,7 +171,8 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
         </p>
         <p>
           Your code writes those tables through the prebuilt repositories from
-          the briefing, one per table: <Code>db.banks</Code>,{' '}
+          the briefing, one per table: <Code>db.commercialBanks</Code> — the
+          central bank's register of licensed banks — and{' '}
           <Code>db.accounts</Code>. Their methods live in{' '}
           <Code>packages/db/src/bank-db.ts</Code> — open it and find the ones
           you need, or type <Code>db.</Code> in the editor and read the list.

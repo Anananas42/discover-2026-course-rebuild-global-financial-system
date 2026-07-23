@@ -1,12 +1,12 @@
 // The database API, parsed from the source at request time so the
 // reference the workbench shows can never drift from the real repos —
 // the same no-second-source rule the tRPC router follows. One group per
-// repository (bankRepo, accountRepo, claimRepo, settingRepo), plus the
+// repository (commercialBankRepo, accountRepo, claimRepo, settingRepo), plus the
 // `Db` container's `transaction` under `db`; the container's other
 // methods (dump, reset, the snapshot pair, destroy) are left out —
 // students never call them. Repo methods take one input object; the parser expands its
 // fields so the client can syntax-highlight the signature and build a
-// copy-ready call, `bankRepo.create({ name })`.
+// copy-ready call, `commercialBankRepo.create({ name })`.
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -27,7 +27,7 @@ export interface DbApiMethod {
 }
 
 export interface DbApiGroup {
-  /** The bound variable a task uses, e.g. `bankRepo`. */
+  /** The bound variable a task uses, e.g. `commercialBankRepo`. */
   repo: string;
   methods: DbApiMethod[];
 }
@@ -37,7 +37,8 @@ const SOURCE = path.resolve(
   '../../packages/db/src/bank-db.ts'
 );
 
-// `export class BankRepo extends Repo {` → the `bankRepo` a task binds.
+// `export class CommercialBankRepo extends Repo {` → the
+// `commercialBankRepo` a task binds.
 const CLASS_RE = /^export class (\w+)Repo extends Repo \{$/;
 // The `Db` container itself → the `db` a task binds for `transaction`.
 const DB_CLASS_RE = /^export class Db /;

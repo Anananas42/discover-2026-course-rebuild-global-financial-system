@@ -7,8 +7,8 @@
 // combined table of everyone's accounts: to find an account you must know
 // its bank, which is what makes settlement between separate ledgers a
 // real thing.
-// The central bank's schema additionally holds `banks`, the registry of
-// licensed banks — the source of the `bank_<id>` schema names.
+// The central bank's schema additionally holds `commercial_banks`, the
+// registry of licensed banks — the source of the `bank_<id>` schema names.
 //
 // The table shapes are fixed for the whole course and applied idempotently
 // — `ensureSchema` on connect for the central bank, `ensureBooks` when a
@@ -21,7 +21,7 @@
 
 import { sql, type Generated, type Kysely } from 'kysely';
 
-export interface BanksTable {
+export interface CommercialBanksTable {
   id: Generated<number>;
   name: string;
 }
@@ -79,12 +79,12 @@ export interface SettingsTable {
   value: string;
 }
 
-// `banks` exists only in the central bank's schema; the bank schemas hold
+// `commercial_banks` exists only in the central bank's schema; the bank schemas hold
 // just accounts and claims. Kysely sees one shape for all schemas — the
-// Db only ever queries `banks` through the central bank's schema.
+// Db only ever queries `commercial_banks` through the central bank's schema.
 export interface Database {
   accounts: AccountsTable;
-  banks: BanksTable;
+  commercial_banks: CommercialBanksTable;
   claims: ClaimsTable;
   payments: PaymentsTable;
   settings: SettingsTable;
@@ -148,7 +148,7 @@ async function ensureBooksTables(
 export async function ensureSchema(db: Kysely<Database>): Promise<void> {
   await ensureBooksTables(db, CENTRAL_BANK_SCHEMA);
   await sql`
-    CREATE TABLE IF NOT EXISTS ${sql.id(CENTRAL_BANK_SCHEMA)}.banks (
+    CREATE TABLE IF NOT EXISTS ${sql.id(CENTRAL_BANK_SCHEMA)}.commercial_banks (
       id serial PRIMARY KEY,
       name text NOT NULL UNIQUE
     )`.execute(db);
@@ -163,7 +163,7 @@ export async function ensureSchema(db: Kysely<Database>): Promise<void> {
   // get it on the next connect; their data is otherwise untouched.
   const banks = await db
     .withSchema(CENTRAL_BANK_SCHEMA)
-    .selectFrom('banks')
+    .selectFrom('commercial_banks')
     .select('id')
     .execute();
   for (const bank of banks) {
