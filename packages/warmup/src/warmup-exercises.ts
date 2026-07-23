@@ -94,7 +94,7 @@ export function readInstructions(headquarters: {
 /**
  * Checks a proposed amount: a negative one is refused with
  * NegativeAmountError, anything else comes back unchanged. The signature
- * already promises both outcomes — the smallest method that can say no.
+ * already promises both outcomes.
  */
 export function requireNonNegativeAmount(
   amount: Big

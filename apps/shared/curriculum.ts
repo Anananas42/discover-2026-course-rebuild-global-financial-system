@@ -99,7 +99,7 @@ export const CURRICULUM: CurriculumStage[] = [
           'Send headquarters your status report — your first line of restored code, and your first passing test.',
         steps: [
           'Read the explainer above and mark it read.',
-          'Open the file below and read the documentation above the task — every task has some; this one time, it gives the exact line to write.',
+          'Open the file below and read the documentation above the task — every task has some.',
           'Run the tests from this card and watch the task turn green.',
         ],
       },
@@ -109,7 +109,7 @@ export const CURRICULUM: CurriculumStage[] = [
           'Add two money amounts the safe way: with a Big method, never with plus.',
         steps: [
           'Open the test file to see the amounts it expects.',
-          'The explainer above lists the Big methods — one of them is the whole solution.',
+          'The explainer above lists the Big methods — one of them is the solution.',
         ],
       },
       {
@@ -135,13 +135,12 @@ export const CURRICULUM: CurriculumStage[] = [
         story:
           "Wait for headquarters' instructions — an answer that arrives later, as a Promise.",
         steps: [
-          'Read the explainer above — the one pattern there is the whole solution.',
+          'Read the explainer above — the one pattern there is the solution.',
         ],
       },
       {
         id: '0.6',
-        story:
-          'Refuse a negative amount with a named error — the smallest method that can say no.',
+        story: 'Refuse a negative amount with a named error.',
         steps: [
           'Read the explainer above.',
           'The signature names the error to fail with; give it the amount as text.',
@@ -150,8 +149,7 @@ export const CURRICULUM: CurriculumStage[] = [
       },
       {
         id: '0.7',
-        story:
-          'Move an amount between two accounts in one transaction — both writes land, or neither does.',
+        story: 'Move an amount between two accounts in one transaction.',
         steps: [
           'Read the explainer above.',
           'Write both new balances — minus the amount, plus the amount — inside one db.transaction call.',

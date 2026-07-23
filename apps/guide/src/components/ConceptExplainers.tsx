@@ -160,8 +160,11 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
         <p>
           The financial system starts almost empty: the Central Bank tab, and
           two raw views — Database and Log. Every operation you implement adds
-          its button. The Commercial Bank tab, with "Open a new bank" on it,
-          appears as soon as you start writing this task's code.
+          its button.{' '}
+          <b>
+            The Commercial Bank tab, with "Open a new bank" on it, appears as
+            soon as you start writing this task's code.
+          </b>
         </p>
         <p>
           The Database tab is your map. It shows every table in the country,
@@ -207,8 +210,7 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
           The database promises that everything inside lands together — or, if
           anything throws, nothing does. The call hands back a Promise, so it is
           waited for like any other:{' '}
-          <Code>yield* Effect.promise(() =&gt; db.transaction(...))</Code>. One
-          write alone needs no transaction; two or more belong in one.
+          <Code>yield* Effect.promise(() =&gt; db.transaction(...))</Code>.
         </p>
       </>
     ),
