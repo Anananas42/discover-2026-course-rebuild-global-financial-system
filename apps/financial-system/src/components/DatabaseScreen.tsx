@@ -8,9 +8,9 @@ import { clearCallLog } from '../call-log.ts';
 import { outcomeOf } from '../outcome-of.ts';
 import { toastOutcome, toastSuccess } from '../toasts.tsx';
 import { DbApiReference } from './DbApiReference.tsx';
-import { InstitutionBooks } from './InstitutionBooks.tsx';
+import { InstitutionDatabase } from './InstitutionDatabase.tsx';
 
-// The god view: every institution's books, verbatim, straight from the
+// The god view: every institution's database, verbatim, straight from the
 // database — deliberately bypassing the domain so it stays truthful when
 // the domain code is wrong. Amounts render as the raw minor units they
 // are stored as; the gap between this tab and every other tab is the
@@ -74,7 +74,11 @@ export function DatabaseScreen({
       <DbApiReference />
 
       {dump?.map(institution => (
-        <InstitutionBooks key={institution.schema} institution={institution} />
+        <InstitutionDatabase
+          key={institution.schema}
+          institution={institution}
+          stickyHeader
+        />
       ))}
 
       <div className="mt-8 flex flex-wrap items-center gap-4 rounded-xl border border-line px-4 py-3">

@@ -19,7 +19,7 @@ export function ActionGroup({
   children,
 }: {
   label: string;
-  /** What the group's operations do to the books — the mechanics behind
+  /** What the group's operations do to the records — the mechanics behind
    *  the buttons, shown as an Explain tooltip on the caption. */
   hint?: ReactNode;
   /** A machinery group, not an economic one — dashed border. */

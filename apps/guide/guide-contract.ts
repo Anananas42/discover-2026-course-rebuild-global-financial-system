@@ -36,6 +36,10 @@ export interface GuideTask {
   title: string;
   /** The functionality, as a user story (apps/shared/curriculum.ts). */
   story: string;
+  /** The story's detail — a lead-in and one requirement per bullet,
+   *  rendered as the story's next paragraph; null for tasks whose story
+   *  reads fine alone. */
+  requirements: { intro: string; items: string[] } | null;
   /** How to walk the story by hand in the financial system, in order. */
   steps: string[];
   /** The curriculum stage this task belongs to — the id's major part. */

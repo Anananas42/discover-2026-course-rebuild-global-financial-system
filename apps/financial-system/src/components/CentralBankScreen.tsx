@@ -11,6 +11,7 @@ import { Amount } from './Amount.tsx';
 import { DatabaseSection } from './DatabaseSection.tsx';
 import { LendToBankDialog } from './LendToBankDialog.tsx';
 import { LogSection } from './LogSection.tsx';
+import { OpenBankDialog } from './OpenBankDialog.tsx';
 import { PayBankDialog } from './PayBankDialog.tsx';
 import { Explain } from '@banks/shared/browser/ui/tooltip.tsx';
 
@@ -121,6 +122,26 @@ export function CentralBankScreen({
       </div>
 
       <div className="mb-5 flex flex-wrap gap-3">
+        {/* Licensing is the central bank's authority: the button lives
+            here, even though what it creates is a commercial bank. */}
+        {isDone(config.tasks, TASK.openBank) && (
+          <ActionGroup
+            label="New bank"
+            hint={
+              <>
+                A bank begins as an entry in the central bank's database: a
+                reserve account opened in its name.
+                <p className="mt-1">
+                  That account plays the same role for the bank as your account
+                  at a commercial bank plays for you: the bank keeps its money
+                  there and pays other banks from it.
+                </p>
+              </>
+            }
+          >
+            <OpenBankDialog />
+          </ActionGroup>
+        )}
         {isDone(config.tasks, TASK.payBank) && (
           <ActionGroup
             label="Payments"
@@ -218,8 +239,8 @@ export function CentralBankScreen({
           </div>
           {books.reserveAccounts.length === 0 ? (
             <p className="px-4 py-4 text-sm text-muted">
-              No banks are registered yet — open the first one on the Commercial
-              Bank tab, then lend it reserves here.
+              No banks are registered yet — license the first one with the
+              button above, then lend it reserves.
             </p>
           ) : (
             <div className="grid sm:grid-cols-2">
@@ -363,10 +384,11 @@ export function CentralBankScreen({
           )}
           {!balanced && (
             <UnbalancedBar>
-              The books do not balance: claims {formatMoney(books.totalClaims)}{' '}
-              {config.currency}, reserves + equity{' '}
-              {formatMoney(books.totalLiabilitiesAndEquity)} {config.currency} —
-              off by {formatMoney(difference)} {config.currency}.
+              The balance sheet does not balance: claims{' '}
+              {formatMoney(books.totalClaims)} {config.currency}, reserves +
+              equity {formatMoney(books.totalLiabilitiesAndEquity)}{' '}
+              {config.currency} — off by {formatMoney(difference)}{' '}
+              {config.currency}.
             </UnbalancedBar>
           )}
         </div>
@@ -375,7 +397,7 @@ export function CentralBankScreen({
       <div className="mt-6 flex flex-col gap-3">
         <DatabaseSection
           version={version}
-          label="Database — the central bank's books"
+          label="Database — the central bank's own database"
           schemas={['central_bank']}
         />
         <LogSection

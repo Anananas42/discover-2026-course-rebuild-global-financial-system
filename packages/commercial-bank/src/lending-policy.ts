@@ -2,7 +2,7 @@
 // receives the amount but owes amount plus interest, and the interest is
 // the bank's income, credited to the bank's own account the moment the
 // loan is made. The rate is each bank's own decision, stored in that
-// bank's books and set from its screen; a bank prices above the central
+// bank's own database and set from its screen; a bank prices above the central
 // bank's policy rate, and the spread is its business.
 //
 // Simplified on purpose: one flat markup per bank for every loan,

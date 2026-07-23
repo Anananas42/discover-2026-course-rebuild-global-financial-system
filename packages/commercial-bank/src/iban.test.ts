@@ -2,7 +2,9 @@ import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { InvalidIbanError } from './commercial-bank-errors.ts';
-import { COUNTRY_CODE, ibanFor, parseIban } from './iban.ts';
+import { COUNTRY_CODE } from '@banks/central-bank/bank-identity.ts';
+
+import { ibanFor, parseIban } from './iban.ts';
 
 describe('ibans', () => {
   it('packs the bank and account number into an 18-character IBAN and reads them back', async () => {

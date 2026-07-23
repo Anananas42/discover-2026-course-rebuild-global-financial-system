@@ -11,6 +11,7 @@
     "effect": "^3.22.0"
   },
   "devDependencies": {
+    "@banks/commercial-bank": "workspace:*",
     "@types/big.js": "^7.0.0"
   }
 }

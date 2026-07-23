@@ -33,8 +33,7 @@ export function InitializeExplainer({ glow }: { glow: boolean }) {
         <p>
           It asks who you are: your name, the country the United Nations has
           assigned to you, and your currency's ticker and decimal places. From
-          then on, the button at the top opens your country's financial system —
-          the real world, where this task and everything after it takes place.
+          then on, the button at the top opens your country's financial system.
         </p>
       </div>
     </div>

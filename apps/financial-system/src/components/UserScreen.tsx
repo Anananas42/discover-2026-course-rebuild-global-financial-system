@@ -48,7 +48,7 @@ import { useStoredState } from '../use-stored-state.ts';
 // table under it is where each part actually lives.
 //
 // No database section here on purpose: the DB slice rule is "the
-// persona's own books", and people keep no books — their accounts are
+// persona's own database", and people keep no database — their accounts are
 // rows in their banks'.
 
 type ClientRow = Awaited<ReturnType<typeof api.user.list.query>>[number];

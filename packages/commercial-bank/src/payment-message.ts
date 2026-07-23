@@ -3,13 +3,28 @@
 // to act on. Real systems exchange these as ISO 20022 documents over the
 // payment network; here the network is a method call, but the shape is
 // the lesson — the receiving bank knows nothing but what the message
-// carries, and each bank writes only its own books. The recipient is
+// carries, and each bank writes only its own database. The recipient is
 // named only by IBAN, as on the real wire: the bank code inside it is
 // what routed the message, the check digits guard it against corruption,
 // and a bank's internal account ids never leave the bank — which is why
 // IBANs exist.
 
 import type Big from 'big.js';
+import type { Effect } from 'effect';
+
+import type {
+  InvalidAmountError,
+  SameBankError,
+  UnknownBankError,
+} from '@banks/central-bank/bank-errors.ts';
+import type { Account } from '@banks/db/repos/account-repo.ts';
+
+import type {
+  ForeignIbanError,
+  InvalidIbanError,
+  MismatchedMessageError,
+  UnknownAccountError,
+} from './commercial-bank-errors.ts';
 
 export interface PaymentMessage {
   /** The sending bank's BIC — which institution is speaking. A BIC
@@ -32,4 +47,26 @@ export interface PaymentMessage {
   /** The recipient's address, exactly as the sender's client gave it. */
   toIban: string;
   amount: Big;
+}
+
+/** The receiving end of the wire, as the sending bank sees it: hand the
+ *  message over, and the other bank does the rest in its own database.
+ *  Implemented by the commercial layer — every bank can receive. */
+export interface ReceivingBank {
+  /** Act on an arrived payment message: credit the account it names, in
+   *  your own database (task 4.2). A sending bank never calls this
+   *  directly — it hands its message to the prebuilt deliverPayment,
+   *  the wire between banks, at the end of task 4.3. */
+  receivePayment(
+    message: PaymentMessage
+  ): Effect.Effect<
+    Account,
+    | InvalidIbanError
+    | ForeignIbanError
+    | MismatchedMessageError
+    | SameBankError
+    | UnknownBankError
+    | UnknownAccountError
+    | InvalidAmountError
+  >;
 }

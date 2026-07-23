@@ -1,22 +1,35 @@
 import { api } from '../api.ts';
 
-// One institution's books from the debug dump, rendered verbatim: table
-// name, columns, raw rows — amounts stay the minor-unit strings they are
-// stored as. Used by the Database tab (all institutions) and by the
-// per-screen database sections (that persona's slice).
+// One institution's database from the debug dump, rendered verbatim:
+// table name, columns, raw rows — amounts stay the minor-unit strings
+// they are stored as. Used by the Database tab (all institutions) and by
+// the per-screen database sections (that persona's slice).
 
 type DumpedInstitution = Awaited<
   ReturnType<typeof api.debug.dump.query>
 >[number];
 
-export function InstitutionBooks({
+export function InstitutionDatabase({
   institution,
+  stickyHeader = false,
 }: {
   institution: DumpedInstitution;
+  /** Pin the institution name to the viewport while its tables scroll.
+   *  Only the Database tab wants this; inside a collapsible section the
+   *  header would outstay its section. The header's pt-3 gives the
+   *  pinned line an opaque strip that scrolling rows disappear under;
+   *  the container's -mt-3 cancels it in the static layout — it cannot
+   *  sit on the header itself, where a negative margin would shift the
+   *  stuck position above the viewport. */
+  stickyHeader?: boolean;
 }) {
   return (
-    <div className="mb-7 last:mb-0">
-      <div className="mb-3 border-b border-line pb-1.5 text-xs font-semibold tracking-wider text-muted uppercase">
+    <div className={`mb-7 last:mb-0 ${stickyHeader ? '-mt-3' : ''}`}>
+      <div
+        className={`mb-3 border-b border-line pb-1.5 text-xs font-semibold tracking-wider text-muted uppercase ${
+          stickyHeader ? 'sticky top-0 z-10 bg-page pt-3' : ''
+        }`}
+      >
         {institution.institution}
       </div>
       {institution.tables.map(table => (

@@ -1,4 +1,4 @@
-import { Landmark } from 'lucide-react';
+import { Building2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { api } from '../api.ts';
@@ -17,10 +17,10 @@ export function OpenBankDialog({
     <OperationDialog
       trigger={
         <>
-          <Landmark size={16} /> Open a new bank
+          <Building2 size={16} /> License a new commercial bank
         </>
       }
-      title="Open a new bank"
+      title="License a new commercial bank"
       description="Registers the bank and opens its reserve account at the central bank."
       runLabel="Open"
       onRun={async () => {

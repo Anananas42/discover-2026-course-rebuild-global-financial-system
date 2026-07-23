@@ -10,7 +10,7 @@ import { RATE_SLIDER, rateSliderValue, sliderPercent } from './rate-slider.ts';
 
 // The bank prices its own loans. A gauge in the screen header: the pill
 // showing the current rate is the control that changes it. Entered in
-// percent, stored in this bank's books, and charged on new loans only —
+// percent, stored in this bank's own database, and charged on new loans only —
 // existing claims keep the price they were made at. A bank prices above
 // the central bank's policy rate; the spread is its business.
 

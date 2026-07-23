@@ -17,11 +17,12 @@ import {
   CollapsibleTrigger,
 } from '@banks/shared/browser/ui/collapsible.tsx';
 
+import { vscodeHref } from '@banks/shared/browser/vscode-link.ts';
 import { TASK } from '@banks/shared/curriculum.ts';
 
 import type { FileLink, GuideTask, TaskStatus } from '../../guide-contract.ts';
-import { vscodeHref } from '../vscode-link.ts';
 import { CONCEPTS_BY_TASK, ConceptExplainer } from './ConceptExplainers.tsx';
+import { CurriculumText } from './CurriculumText.tsx';
 import { InitializeExplainer } from './InitializeExplainer.tsx';
 import {
   allCuriositiesRead,
@@ -183,7 +184,27 @@ export function TaskCard({
             the section labels drop to small caps. Size now separates
             "read this" from "operate this". */}
         {task.story && (
-          <p className="text-base leading-relaxed">{task.story}</p>
+          <p className="text-base leading-relaxed">
+            <CurriculumText text={task.story} />
+          </p>
+        )}
+
+        {/* The story's detail, where it has one: a lead-in and one
+            business requirement per bullet — the prompt's next
+            paragraph, same prose voice and size as the story. */}
+        {task.requirements && (
+          <>
+            <p className="mt-3 text-base leading-relaxed">
+              <CurriculumText text={task.requirements.intro} />
+            </p>
+            <ul className="mt-1.5 list-disc space-y-1 pl-6 text-base leading-relaxed marker:text-muted">
+              {task.requirements.items.map(requirement => (
+                <li key={requirement}>
+                  <CurriculumText text={requirement} />
+                </li>
+              ))}
+            </ul>
+          </>
         )}
 
         {/* The first task after the mission briefing carries the bridge
@@ -214,7 +235,9 @@ export function TaskCard({
             </p>
             <ol className="mt-1 list-decimal space-y-1 pl-6 text-sm leading-relaxed marker:text-muted">
               {task.steps.map(step => (
-                <li key={step}>{step}</li>
+                <li key={step}>
+                  <CurriculumText text={step} />
+                </li>
               ))}
             </ol>
           </>

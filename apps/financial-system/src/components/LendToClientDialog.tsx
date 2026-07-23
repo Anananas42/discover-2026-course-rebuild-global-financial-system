@@ -39,11 +39,11 @@ export function LendToClientDialog({
 }: {
   /** The bank currently selected on the screen — the lender. */
   bank: Bank | undefined;
-  /** The bank's client accounts, as its books list them. */
+  /** The bank's client accounts, as its own database lists them. */
   accounts: ClientAccountRow[];
   currency: string;
   /** This bank's lending rate, as a ratio string ('0.10' = 10%);
-   *  undefined while no bank's books are loaded. */
+   *  undefined while no bank's balance sheet is loaded. */
   interestRate: string | undefined;
 }) {
   const [personId, setPersonId] = useState('');

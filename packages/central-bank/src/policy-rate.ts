@@ -3,7 +3,7 @@
 // guide and the workbench call it the central bank interest rate: the
 // same rate, in plain words; "policy rate" is its professional name. It
 // is a lever, not a constant of the world: the central banker sets it
-// (stored in the central bank's books), and each loan carries the rate
+// (stored in the central bank's own database), and each loan carries the rate
 // valid at the moment it is made — existing claims never reprice. A bank
 // borrows at the policy rate and lends to clients at its own higher
 // rate; the spread is the bank's business.
@@ -28,7 +28,7 @@ export const POLICY_RATE_KEY = 'policy-rate';
 
 /**
  * Parses a rate typed as a percentage ('5', '4.75') into the ratio the
- * books store ('0.05'): a number from -5 to 100 in steps of a hundredth
+ * settings row stores ('0.05'): a number from -5 to 100 in steps of a hundredth
  * of a percent — one basis point, the unit rate moves are announced in.
  * Slightly negative is allowed: real central banks have charged banks for
  * parking money (Japan, the euro area, Switzerland). Shared with the

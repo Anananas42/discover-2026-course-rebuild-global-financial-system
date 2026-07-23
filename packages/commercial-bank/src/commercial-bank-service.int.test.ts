@@ -11,9 +11,11 @@ import {
 } from '@banks/central-bank/bank-errors.ts';
 import { CentralBank } from '@banks/central-bank/central-bank-service.ts';
 import { randomAccountNumber } from '@banks/db/account-number.ts';
-import type { Account, CommercialBank, Db } from '@banks/db/bank-db.ts';
 import { connect } from '@banks/db/database.ts';
+import type { FinancialSystemDb } from '@banks/db/financial-system-db.ts';
 import { randomPersonalId } from '@banks/db/person-id.ts';
+import type { Account } from '@banks/db/repos/account-repo.ts';
+import type { CommercialBank } from '@banks/db/repos/commercial-bank-repo.ts';
 
 import {
   ForeignIbanError,
@@ -25,24 +27,29 @@ import {
   UnknownPersonError,
 } from './commercial-bank-errors.ts';
 import { CommercialBanks } from './commercial-bank-service.ts';
-import { bicFor, ibanFor } from './iban.ts';
+import { bicFor } from '@banks/central-bank/bank-identity.ts';
 
-let db: Db;
+import { ibanFor } from './iban.ts';
+
+let system: FinancialSystemDb;
 let centralBank: CentralBank;
 let banks: CommercialBanks;
 
 beforeAll(async () => {
-  db = await connect();
-  centralBank = new CentralBank(db);
-  banks = new CommercialBanks(db, centralBank);
+  system = await connect();
+  centralBank = new CentralBank(system.centralBank);
+  banks = new CommercialBanks(
+    bankId => system.commercialBank(bankId),
+    centralBank
+  );
 });
 
 beforeEach(async () => {
-  await db.reset();
+  await system.reset();
 });
 
 afterAll(async () => {
-  await db.destroy();
+  await system.destroy();
 });
 
 /** A registered bank with the given reserves at the central bank. */
@@ -59,27 +66,78 @@ async function bankWithReserves(
   return bank;
 }
 
-/** An account with a balance, planted straight into a bank's books.
- *  The payment tasks (stage 4) come before people and their loans
- *  exist, so their tests plant the rows that money moves between. */
+/** An account with a balance, planted straight into a bank's own
+ *  database. The payment tasks (stage 4) come before people and their
+ *  loans exist, so their tests plant the rows that money moves between. */
 async function plantedAccount(
   bankId: number,
   owner: string,
   balance: string
 ): Promise<Account> {
-  const account = await db.accounts.create({
-    books: bankId,
+  const commercialBankDb = system.commercialBank(bankId);
+  const account = await commercialBankDb.accounts.create({
     owner,
     number: randomAccountNumber(),
     personId: randomPersonalId(),
   });
-  await db.accounts.setBalance({
-    books: bankId,
+  await commercialBankDb.accounts.setBalance({
     id: account.id,
     balance: new Big(balance),
   });
   return { ...account, balance: new Big(balance) };
 }
+
+describe('task 2.1: recording a notice from the central bank', () => {
+  it("a payment notice grows the bank's own account by the amount", async () => {
+    const bank = await bankWithReserves('First Bank', '0');
+    await Effect.runPromise(
+      banks.recordOwnAccountChangeFromCentralBank({
+        bankId: bank.id,
+        kind: 'payment',
+        amount: new Big('50'),
+      })
+    );
+    const books = await Effect.runPromise(
+      banks.balanceSheet({ bankId: bank.id })
+    );
+    expect(books.equity.eq('50')).toBe(true);
+  });
+
+  it("a charge arrives negative and shrinks the bank's own account", async () => {
+    const bank = await bankWithReserves('First Bank', '0');
+    await Effect.runPromise(
+      banks.recordOwnAccountChangeFromCentralBank({
+        bankId: bank.id,
+        kind: 'interest-charged',
+        amount: new Big('-30'),
+      })
+    );
+    const books = await Effect.runPromise(
+      banks.balanceSheet({ bankId: bank.id })
+    );
+    expect(books.equity.eq('-30')).toBe(true);
+  });
+
+  it('records the change for the addressed bank only', async () => {
+    const first = await bankWithReserves('First Bank', '0');
+    const second = await bankWithReserves('Second Bank', '0');
+    await Effect.runPromise(
+      banks.recordOwnAccountChangeFromCentralBank({
+        bankId: first.id,
+        kind: 'debt-forgiven',
+        amount: new Big('70'),
+      })
+    );
+    const firstBooks = await Effect.runPromise(
+      banks.balanceSheet({ bankId: first.id })
+    );
+    const secondBooks = await Effect.runPromise(
+      banks.balanceSheet({ bankId: second.id })
+    );
+    expect(firstBooks.equity.eq('70')).toBe(true);
+    expect(secondBooks.equity.eq(0)).toBe(true);
+  });
+});
 
 describe('task 5.1: becoming a client', () => {
   it('issues a personal id and a random account number', async () => {
@@ -369,13 +427,15 @@ describe('task 4.3: transferring between banks', () => {
         amount: new Big('300'),
       })
     );
-    const payments = await db.payments.list({ books: first.id });
+    const payments = await system.commercialBank(first.id).payments.list();
     expect(payments).toHaveLength(1);
     expect(payments[0]?.amount.eq('300')).toBe(true);
     expect(payments[0]?.toAccountNumber).toBe(carol.number);
     expect(payments[0]?.status).toBe('completed');
     // The receiving bank sent no payment — its record stays empty.
-    expect(await db.payments.list({ books: second.id })).toHaveLength(0);
+    expect(await system.commercialBank(second.id).payments.list()).toHaveLength(
+      0
+    );
   });
 });
 
@@ -450,9 +510,8 @@ describe('task 6.1: sending money to an IBAN', () => {
       banks.becomeClient({ bankId: bank.id, name: 'Bob' })
     );
     // A salary planted by hand — the walkthrough earns it through
-    // "Pay from the bank's account" (task 4.2).
-    await db.accounts.setBalance({
-      books: bank.id,
+    // "Pay from the bank's account" (task 4.4).
+    await system.commercialBank(bank.id).accounts.setBalance({
       id: alice.id,
       balance: new Big('1000'),
     });
@@ -528,8 +587,7 @@ describe('task 5.3: renaming a person', () => {
     );
     // A salary planted by hand — money on the account without the loan
     // tasks that come later in the course.
-    await db.accounts.setBalance({
-      books: first.id,
+    await system.commercialBank(first.id).accounts.setBalance({
       id: alice.id,
       balance: new Big('100'),
     });

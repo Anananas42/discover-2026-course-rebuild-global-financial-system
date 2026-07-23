@@ -2,10 +2,11 @@
 import { NotImplementedError } from '../../central-bank/src/bank-errors.ts';
 // The commercial-bank layer: client accounts, loans, and transfers, on
 // top of the central bank. Each bank's clients live in that bank's own
-// books; a transfer that stays inside one bank is two rows in one ledger,
-// while a transfer that crosses banks must also settle over the central
-// bank's reserve accounts — the same `transferReserves` a student clicks
-// by hand in the central-bank stages, now called by code.
+// database; a transfer that stays inside one bank is two rows changing
+// in one database, while a transfer that crosses banks must also settle
+// over the central bank's reserve accounts — the same `transferReserves`
+// a student clicks by hand in the central-bank stages, now called by
+// code.
 //
 // Money creation recurs here exactly as at the central bank: a bank lends
 // to a client by crediting the client's deposit and recording a claim —
@@ -14,33 +15,43 @@ import { NotImplementedError } from '../../central-bank/src/bank-errors.ts';
 //
 // Two things make a bank a business rather than a copy machine:
 // - Interest: a loan's claim is the amount plus interest, and the
-//   interest is credited to the bank's own account in its own books —
+//   interest is credited to the bank's own account in its own database —
 //   the equity account, opened with the bank. The bank spends from it like
 //   any account (salaries, dividends), which is also how the interest it
 //   earns gets back into circulation so that loans can actually be repaid.
 // - The reserve requirement: a bank may only lend if its reserves at the
 //   central bank stay at least the required share of its client deposits
-//   afterwards — the central bank's dial (read live from its books), and
-//   its brake on infinite lending.
+//   afterwards — the central bank's dial, and its brake on infinite
+//   lending.
 //
-// Conventions are the central-bank package's: state behind the dumb
-// `Db`, every check here, one `input` object per public method and per
-// db call, methods return `Effect.Effect<Result, PossibleErrors>`, and a
-// step with more than one write commits them in one `db.transaction(...)`
-// block. One deliberate exception: an interbank payment is three steps —
-// accept (record the payment, debit the sender), settle (the central
-// bank's own `transferReserves`, a transaction of its own), deliver (the
-// receiving bank credits from the payment message) — because each
-// institution writes only its own books, so no single transaction can
-// span them. The payment row's status advances behind each step
-// ('accepted' → 'settled' → 'completed'): a crash mid-payment strands
-// money in flight, but the row always explains what is stuck, the
-// receiver is never credited unsettled money, and money is never
-// created or destroyed.
+// Conventions are the central-bank package's: every method acts as ONE
+// bank and binds that bank's own database handle (`commercialBankDb`) —
+// the only database it can reach. The central bank's data is read by
+// asking the central bank (reserveBalance, the register); news from the
+// central bank arrives as notices the bank records itself (task 2.1).
+// Every public method takes one `input` object and so does every repo
+// call, methods return `Effect.Effect<Result, PossibleErrors>`, and a
+// step with more than one write commits them in one
+// `commercialBankDb.transaction(...)` block. One deliberate exception:
+// an interbank payment is three steps — accept (record the payment,
+// debit the sender), settle (the central bank's own `transferReserves`,
+// a transaction of its own), deliver (the receiving bank credits from
+// the payment message) — because each institution writes only its own
+// database, so no single transaction can span them. The payment row's
+// status advances behind each step ('accepted' → 'settled' →
+// 'completed'): a crash mid-payment strands money in flight, but the row
+// always explains what is stuck, the receiver is never credited
+// unsettled money, and money is never created or destroyed.
 
 import Big from 'big.js';
 import { Effect } from 'effect';
 
+import { bicFor, COUNTRY_CODE } from '@banks/central-bank/bank-identity.ts';
+import type {
+  CentralBankNotice,
+  LicensedBanks,
+} from '@banks/central-bank/bank-notice.ts';
+import type { CentralBankApi } from '@banks/central-bank/central-bank-api.ts';
 import type { CentralBank } from '@banks/central-bank/central-bank-service.ts';
 import { requirePositiveAmount } from '@banks/central-bank/central-bank-service.ts';
 import type {
@@ -57,8 +68,11 @@ import {
 import { CURRENCY } from '@banks/central-bank/currency.ts';
 import { interestOn, parseRate } from '@banks/central-bank/policy-rate.ts';
 import { randomAccountNumber } from '@banks/db/account-number.ts';
-import type { Account, CommercialBank, Claim, Db } from '@banks/db/bank-db.ts';
+import type { CommercialBankDb } from '@banks/db/commercial-bank-db.ts';
 import { randomPersonalId } from '@banks/db/person-id.ts';
+import type { Account } from '@banks/db/repos/account-repo.ts';
+import type { Claim } from '@banks/db/repos/claim-repo.ts';
+import type { CommercialBank } from '@banks/db/repos/commercial-bank-repo.ts';
 
 import {
   ForeignIbanError,
@@ -72,15 +86,15 @@ import {
   UnknownAccountError,
   UnknownPersonError,
 } from './commercial-bank-errors.ts';
-import { bicFor, COUNTRY_CODE, ibanFor, parseIban } from './iban.ts';
-import type { PaymentMessage } from './payment-message.ts';
+import { ibanFor, parseIban } from './iban.ts';
+import type { PaymentMessage, ReceivingBank } from './payment-message.ts';
 import { DEFAULT_INTEREST_RATE, INTEREST_RATE_KEY } from './lending-policy.ts';
 
 export interface BankBalanceSheet {
   bank: CommercialBank;
   /** Liabilities: the clients' deposit accounts. */
   accounts: Account[];
-  /** The bank's own account in its own books — its equity: interest
+  /** The bank's own account in its own database — its equity: interest
    *  income lands here, and the bank spends from here. */
   ownAccount: Account;
   /** Assets: outstanding loans to clients, keyed by personal id. */
@@ -128,13 +142,83 @@ export interface SendMoneyReceipt {
   recipient: string;
 }
 
-export class CommercialBanks {
-  private db: Db;
-  private centralBank: CentralBank;
+export class CommercialBanks implements LicensedBanks, ReceivingBank {
+  /** One bank's own database, by id. Every method acts as one bank and
+   *  binds that bank's handle from here — never another institution's. */
+  private commercialBankDbFor: (bankId: number) => CommercialBankDb;
+  /** The central bank as banks see it: the ask-API (central-bank-api.ts),
+   *  never the whole institution. */
+  private centralBank: CentralBankApi;
+  /** The workbench's wire tap — see observeMessages. */
+  private messageObserver: ((message: PaymentMessage) => void) | undefined;
 
-  constructor(db: Db, centralBank: CentralBank) {
-    this.db = db;
+  constructor(
+    commercialBankDbFor: (bankId: number) => CommercialBankDb,
+    centralBank: CentralBank
+  ) {
+    this.commercialBankDbFor = commercialBankDbFor;
     this.centralBank = centralBank;
+    // The banks join the central bank's settlement network: notices —
+    // and fresh licenses — can reach them from now on.
+    centralBank.connectCommercialBanks(this);
+  }
+
+  /**
+   * The workbench's wire tap: `observer` is called with every payment
+   * message the moment it is put on the wire, before the receiving bank
+   * acts on it — observation only, prebuilt, never a task. The Interbank
+   * API tab's live feed hangs off it.
+   */
+  observeMessages(observer: (message: PaymentMessage) => void): void {
+    this.messageObserver = observer;
+  }
+
+  /**
+   * A notice from the central bank arrived: something the central bank
+   * did — interest charged on a loan, a payment made to the bank, a debt
+   * forgiven — changed how much money this bank itself has. The bank
+   * cannot see the central bank's database (nobody can); the notice is
+   * all it gets, and the bank's own account, in the bank's own database,
+   * is where it records its side. The amount is signed from the bank's
+   * perspective: positive grows the bank's own account, negative shrinks
+   * it — the notice already decided the direction, the bank just posts
+   * what it says.
+   */
+  recordOwnAccountChangeFromCentralBank(
+    notice: CentralBankNotice
+  ): Effect.Effect<void> {
+    const { bankId, amount } = notice;
+    const commercialBankDb = this.commercialBankDbFor(bankId);
+    const requireOwnAccount = this.requireOwnAccount.bind(this);
+    return Effect.gen(function* () {
+      // TASK 2.1: Record a notice from the central bank
+      // TODO: implement task 2.1.
+      throw new NotImplementedError('2.1');
+      // ENDTASK 2.1
+    });
+  }
+
+  /**
+   * The license lands: the bank's own systems come online. Its database
+   * is created and its own account opened in it — where its income will
+   * accumulate and what it will spend from: its equity. Prebuilt, not a
+   * task: this is the bank's own IT at work; the central bank triggers
+   * it over the notice channel at the end of every licensing (task 1.1).
+   */
+  connectBank(input: { bankId: number; name: string }): Effect.Effect<void> {
+    const { bankId, name } = input;
+    const commercialBankDb = this.commercialBankDbFor(bankId);
+    return Effect.gen(function* () {
+      yield* Effect.promise(() => commercialBankDb.createDatabase());
+      // Institutions have no personal id — the empty string marks that.
+      yield* Effect.promise(() =>
+        commercialBankDb.accounts.create({
+          owner: name,
+          number: randomAccountNumber(),
+          personId: '',
+        })
+      );
+    });
   }
 
   /**
@@ -199,9 +283,7 @@ export class CommercialBanks {
     | ReserveRequirementError
   > {
     const { bankId, accountId, amount } = input;
-    const db = this.db;
-    const accountRepo = this.db.accounts;
-    const claimRepo = this.db.claims;
+    const commercialBankDb = this.commercialBankDbFor(bankId);
     const centralBank = this.centralBank;
     const requireAccount = this.requireAccount.bind(this);
     const interestRate = this.interestRate.bind(this);
@@ -215,22 +297,21 @@ export class CommercialBanks {
 
   /**
    * A bank's lending rate, as the stored ratio (0.10 = 10%). Each bank
-   * prices its own loans; the rate lives in that bank's books, and the
-   * default is seeded on first read so the Database view shows it. The
-   * bank's schema must already exist — every caller has resolved the
-   * bank first.
+   * prices its own loans; the rate lives in that bank's own database,
+   * and the default is seeded on first read so the Database view shows
+   * it. The bank's database must already exist — every caller has
+   * resolved the bank first.
    */
   interestRate(input: { bankId: number }): Effect.Effect<Big> {
     const { bankId } = input;
-    const settingRepo = this.db.settings;
+    const commercialBankDb = this.commercialBankDbFor(bankId);
     return Effect.gen(function* () {
       const stored = yield* Effect.promise(() =>
-        settingRepo.get({ books: bankId, key: INTEREST_RATE_KEY })
+        commercialBankDb.settings.get({ key: INTEREST_RATE_KEY })
       );
       if (stored !== undefined) return new Big(stored);
       yield* Effect.promise(() =>
-        settingRepo.set({
-          books: bankId,
+        commercialBankDb.settings.set({
           key: INTEREST_RATE_KEY,
           value: DEFAULT_INTEREST_RATE.toString(),
         })
@@ -243,7 +324,7 @@ export class CommercialBanks {
    * The bank sets its lending rate, from a percentage as typed ('12.5').
    * Only loans made after the change carry the new rate — existing
    * claims keep the price they were made at. Prebuilt, not a task:
-   * storing a rate was task 2.4's lesson, and a near-verbatim rerun
+   * storing a rate was task 2.5's lesson, and a near-verbatim rerun
    * would teach nothing — the dial is still the bank's own price, set
    * from its screen. Returns the stored ratio.
    */
@@ -252,14 +333,13 @@ export class CommercialBanks {
     percent: string;
   }): Effect.Effect<Big, UnknownBankError | InvalidRateError> {
     const { bankId, percent } = input;
-    const settingRepo = this.db.settings;
+    const commercialBankDbFor = this.commercialBankDbFor;
     const requireBank = this.requireBank.bind(this);
     return Effect.gen(function* () {
       const bank = yield* requireBank(bankId);
       const rate = yield* parseRate(percent);
       yield* Effect.promise(() =>
-        settingRepo.set({
-          books: bank.id,
+        commercialBankDbFor(bank.id).settings.set({
           key: INTEREST_RATE_KEY,
           value: rate.toString(),
         })
@@ -280,8 +360,7 @@ export class CommercialBanks {
     personId: string;
   }): Effect.Effect<Big, UnknownBankError | NoDebtToWriteOffError> {
     const { bankId, personId } = input;
-    const db = this.db;
-    const claimRepo = this.db.claims;
+    const commercialBankDb = this.commercialBankDbFor(bankId);
     const requireBank = this.requireBank.bind(this);
     const requireOwnAccount = this.requireOwnAccount.bind(this);
     return Effect.gen(function* () {
@@ -331,7 +410,7 @@ export class CommercialBanks {
    * the bank's claim by the same amount. Any account may repay only its
    * own holder's loan — that is all it can reach, since loans are keyed
    * by the personal id. Returns the remaining debt; a loan repaid to
-   * zero disappears from the books.
+   * zero disappears from the balance sheet.
    */
   repayLoan(input: {
     bankId: number;
@@ -346,8 +425,7 @@ export class CommercialBanks {
     | RepaymentExceedsDebtError
   > {
     const { bankId, accountId, amount } = input;
-    const db = this.db;
-    const claimRepo = this.db.claims;
+    const commercialBankDb = this.commercialBankDbFor(bankId);
     const requireAccount = this.requireAccount.bind(this);
     const requireFunds = this.requireFunds.bind(this);
     return Effect.gen(function* () {
@@ -361,12 +439,12 @@ export class CommercialBanks {
   /**
    * The receiving bank's half of an interbank payment: an incoming
    * message names the recipient only by IBAN, and the bank credits that
-   * account in its own books — the only books it can write. The bank
-   * code inside the IBAN says whose books those are; the check digits
-   * catch a corrupted address; a foreign IBAN is turned down until the
-   * cross-border lessons. By the time a real message arrives, the
-   * reserves have already settled at the central bank; the message is
-   * all the receiving bank knows, and all it needs. A message for an
+   * account in its own database — the only database it can write. The
+   * bank code inside the IBAN says whose database that is; the check
+   * digits catch a corrupted address; a foreign IBAN is turned down
+   * until the cross-border lessons. By the time a real message arrives,
+   * the reserves have already settled at the central bank; the message
+   * is all the receiving bank knows, and all it needs. A message for an
    * account number nobody holds is refused (in reality the payment
    * would bounce back to the sender — the teacher's caveat), and so is
    * a message naming this bank itself as the sender: an on-us payment
@@ -386,7 +464,7 @@ export class CommercialBanks {
     | InvalidAmountError
   > {
     const { fromBic, fromIban, toBic, toIban, amount } = input;
-    const accountRepo = this.db.accounts;
+    const commercialBankDbFor = this.commercialBankDbFor;
     const requireAccountByNumber = this.requireAccountByNumber.bind(this);
     return Effect.gen(function* () {
       // TASK 4.2: Receive a payment
@@ -479,7 +557,7 @@ export class CommercialBanks {
     amount: Big;
   }): Effect.Effect<void> {
     const { bankId, sender, receiver, amount } = input;
-    const db = this.db;
+    const commercialBankDb = this.commercialBankDbFor(bankId);
     return Effect.gen(function* () {
       // TASK 4.1: Transfer within a bank
       // TODO: implement task 4.1.
@@ -518,8 +596,7 @@ export class CommercialBanks {
     | InsufficientReservesError
   > {
     const { senderBank, sender, toBankId, receiver, amount } = input;
-    const db = this.db;
-    const paymentRepo = this.db.payments;
+    const commercialBankDb = this.commercialBankDbFor(senderBank.id);
     const settleReserves = this.settleReserves.bind(this);
     const deliverPayment = this.deliverPayment.bind(this);
     return Effect.gen(function* () {
@@ -573,21 +650,16 @@ export class CommercialBanks {
     bankId: number;
   }): Effect.Effect<BankBalanceSheet, UnknownBankError> {
     const { bankId } = input;
-    const accountRepo = this.db.accounts;
-    const claimRepo = this.db.claims;
+    const commercialBankDb = this.commercialBankDbFor(bankId);
     const requireBank = this.requireBank.bind(this);
     const requireOwnAccount = this.requireOwnAccount.bind(this);
     const interestRate = this.interestRate.bind(this);
     return Effect.gen(function* () {
       const bank = yield* requireBank(bankId);
-      const all = yield* Effect.promise(() =>
-        accountRepo.list({ books: bankId })
-      );
-      const ownAccount = yield* requireOwnAccount(bankId, bank.name);
+      const all = yield* Effect.promise(() => commercialBankDb.accounts.list());
+      const ownAccount = yield* requireOwnAccount(bankId);
       const accounts = all.filter(account => account.personId !== '');
-      const loans = yield* Effect.promise(() =>
-        claimRepo.list({ books: bankId })
-      );
+      const loans = yield* Effect.promise(() => commercialBankDb.claims.list());
       const zero = new Big(0);
       return {
         bank,
@@ -608,18 +680,18 @@ export class CommercialBanks {
   /** Every client account in the country, across all banks. The banks'
    *  own accounts are not client accounts and stay out. */
   listClients(): Effect.Effect<Client[]> {
-    const commercialBankRepo = this.db.commercialBanks;
-    const accountRepo = this.db.accounts;
-    const claimRepo = this.db.claims;
+    const centralBank = this.centralBank;
+    const commercialBankDbFor = this.commercialBankDbFor;
     return Effect.gen(function* () {
-      const banks = yield* Effect.promise(() => commercialBankRepo.list());
+      const banks = yield* centralBank.listBanks();
       const clients: Client[] = [];
       for (const bank of banks) {
+        const commercialBankDb = commercialBankDbFor(bank.id);
         const accounts = (yield* Effect.promise(() =>
-          accountRepo.list({ books: bank.id })
+          commercialBankDb.accounts.list()
         )).filter(account => account.personId !== '');
         const claims = yield* Effect.promise(() =>
-          claimRepo.list({ books: bank.id })
+          commercialBankDb.claims.list()
         );
         const debtByBorrower = new Map(
           claims.map(claim => [claim.borrower, claim.amount])
@@ -652,7 +724,7 @@ export class CommercialBanks {
     newName: string;
   }): Effect.Effect<number, InvalidClientNameError | UnknownPersonError> {
     const { personId, newName } = input;
-    const db = this.db;
+    const commercialBankDbFor = this.commercialBankDbFor;
     const requireClientName = this.requireClientName.bind(this);
     const findPersonAccounts = this.findPersonAccounts.bind(this);
     return Effect.gen(function* () {
@@ -669,12 +741,12 @@ export class CommercialBanks {
     accountId: number;
   }): Effect.Effect<ClientAccount, UnknownBankError | UnknownAccountError> {
     const { bankId, accountId } = input;
-    const claimRepo = this.db.claims;
+    const commercialBankDb = this.commercialBankDbFor(bankId);
     const requireAccount = this.requireAccount.bind(this);
     return Effect.gen(function* () {
       const { account, bank } = yield* requireAccount({ bankId, accountId });
       const claim = yield* Effect.promise(() =>
-        claimRepo.getByBorrower({ books: bankId, borrower: account.personId })
+        commercialBankDb.claims.getByBorrower({ borrower: account.personId })
       );
       return { account, bank, debt: claim?.amount ?? new Big(0) };
     });
@@ -685,15 +757,15 @@ export class CommercialBanks {
   private findPersonAccounts(
     personId: string
   ): Effect.Effect<{ bank: CommercialBank; account: Account }[]> {
-    const commercialBankRepo = this.db.commercialBanks;
-    const accountRepo = this.db.accounts;
+    const centralBank = this.centralBank;
+    const commercialBankDbFor = this.commercialBankDbFor;
     return Effect.gen(function* () {
       if (personId === '') return [];
-      const banks = yield* Effect.promise(() => commercialBankRepo.list());
+      const banks = yield* centralBank.listBanks();
       const found: { bank: CommercialBank; account: Account }[] = [];
       for (const bank of banks) {
         const accounts = yield* Effect.promise(() =>
-          accountRepo.listByPersonId({ books: bank.id, personId })
+          commercialBankDbFor(bank.id).accounts.listByPersonId({ personId })
         );
         for (const account of accounts) found.push({ bank, account });
       }
@@ -701,27 +773,27 @@ export class CommercialBanks {
     });
   }
 
-  /** The bank issues the account number: random, unique in its books. */
+  /** The bank issues the account number: random, unique in its own
+   *  database. */
   private issueAccount(input: {
     bankId: number;
     owner: string;
     personId: string;
   }): Effect.Effect<Account> {
     const { bankId, owner, personId } = input;
-    const accountRepo = this.db.accounts;
+    const commercialBankDb = this.commercialBankDbFor(bankId);
     return Effect.gen(function* () {
       const number = yield* Effect.promise(async () => {
         for (;;) {
           const candidate = randomAccountNumber();
-          const taken = await accountRepo.getByNumber({
-            books: bankId,
+          const taken = await commercialBankDb.accounts.getByNumber({
             number: candidate,
           });
           if (!taken) return candidate;
         }
       });
       return yield* Effect.promise(() =>
-        accountRepo.create({ books: bankId, owner, number, personId })
+        commercialBankDb.accounts.create({ owner, number, personId })
       );
     });
   }
@@ -759,7 +831,9 @@ export class CommercialBanks {
     Account,
     UnknownBankError | UnknownAccountError | InvalidAmountError
   > {
-    return this.receivePayment(message).pipe(
+    const observer = this.messageObserver;
+    return Effect.sync(() => observer?.(message)).pipe(
+      Effect.flatMap(() => this.receivePayment(message)),
       Effect.catchTag('InvalidIbanError', error => Effect.die(error)),
       Effect.catchTag('ForeignIbanError', error => Effect.die(error)),
       Effect.catchTag('MismatchedMessageError', error => Effect.die(error)),
@@ -768,40 +842,31 @@ export class CommercialBanks {
   }
 
   /**
-   * A registered bank, or the refusal every bank-taking operation
-   * shares — the same helper the central bank keeps.
+   * A registered bank, or the refusal every bank-taking operation shares.
+   * The register is the central bank's — only it knows which banks exist
+   * — so the lookup is a question to the central bank, not a read.
    */
   private requireBank(
     bankId: number
   ): Effect.Effect<CommercialBank, UnknownBankError> {
-    const commercialBankRepo = this.db.commercialBanks;
-    return Effect.gen(function* () {
-      const bank = yield* Effect.promise(() =>
-        commercialBankRepo.get({ id: bankId })
-      );
-      if (!bank) return yield* Effect.fail(new UnknownBankError({ bankId }));
-      return bank;
-    });
+    return this.centralBank.findBank({ bankId });
   }
 
   /**
-   * The bank's own account in its own books, opened with the bank. Its
-   * absence is corrupted state (or books created before the equity
-   * account existed — Reset cures that), so it is a defect.
+   * The bank's own account in its own database, opened with the bank.
+   * Its absence is corrupted state (or a database created before the
+   * equity account existed — Reset cures that), so it is a defect.
    */
-  private requireOwnAccount(
-    bankId: number,
-    bankName: string
-  ): Effect.Effect<Account> {
-    const accountRepo = this.db.accounts;
+  private requireOwnAccount(bankId: number): Effect.Effect<Account> {
+    const commercialBankDb = this.commercialBankDbFor(bankId);
     return Effect.gen(function* () {
       const accounts = yield* Effect.promise(() =>
-        accountRepo.list({ books: bankId })
+        commercialBankDb.accounts.list()
       );
       const ownAccount = accounts.find(account => account.personId === '');
       if (!ownAccount) {
         return yield* Effect.dieMessage(
-          `${bankName} has no own account in its books — reset the database if it was created before equity accounts existed.`
+          `Bank ${String(bankId)} has no own account in its database — reset the database if it was created before equity accounts existed.`
         );
       }
       return ownAccount;
@@ -812,28 +877,26 @@ export class CommercialBanks {
    * Read-and-check for the interbank leg: the sending bank's reserves at
    * the central bank must cover the settlement before the payment is
    * accepted, so it can never be accepted only to fail mid-flight (a
-   * real system would queue or bounce it — the teacher's caveat). Reads
-   * the central bank's books the way the reserve requirement does.
+   * real system would queue or bounce it — the teacher's caveat). The
+   * reserves live at the central bank, so the bank asks it — the same
+   * question the reserve requirement makes.
    */
   private requireSettlementCover(
     bank: CommercialBank,
     amount: Big
   ): Effect.Effect<void, InsufficientReservesError> {
-    const accountRepo = this.db.accounts;
+    const centralBank = this.centralBank;
     return Effect.gen(function* () {
-      const reserve = yield* Effect.promise(() =>
-        accountRepo.getByOwner({ books: 'central-bank', owner: bank.name })
-      );
-      if (!reserve) {
-        return yield* Effect.dieMessage(
-          `${bank.name} is registered but has no reserve account.`
-        );
-      }
-      if (reserve.balance.lt(amount)) {
+      // The bank is already resolved, so an unknown-bank answer here is
+      // corrupted state, not a domain error.
+      const reserves = yield* centralBank
+        .reserveBalance({ bankId: bank.id })
+        .pipe(Effect.catchTag('UnknownBankError', error => Effect.die(error)));
+      if (reserves.lt(amount)) {
         return yield* Effect.fail(
           new InsufficientReservesError({
             bank: bank.name,
-            balance: reserve.balance.toFixed(CURRENCY.decimals),
+            balance: reserves.toFixed(CURRENCY.decimals),
             requested: amount.toFixed(CURRENCY.decimals),
           })
         );
@@ -844,7 +907,7 @@ export class CommercialBanks {
   /**
    * Checks an account can cover an amount, or refuses with the
    * insufficient-funds error every money-spending operation shares. The
-   * check is written out by hand once at the central bank (task 2.2);
+   * check is written out by hand once at the central bank (task 2.3);
    * every payment here leans on the helper — the refusal still lives in
    * every signature.
    */
@@ -892,12 +955,12 @@ export class CommercialBanks {
     UnknownBankError | UnknownAccountError
   > {
     const { bankId, accountId } = input;
-    const accountRepo = this.db.accounts;
+    const commercialBankDb = this.commercialBankDbFor(bankId);
     const requireBank = this.requireBank.bind(this);
     return Effect.gen(function* () {
       const bank = yield* requireBank(bankId);
       const account = yield* Effect.promise(() =>
-        accountRepo.get({ books: bankId, id: accountId })
+        commercialBankDb.accounts.get({ id: accountId })
       );
       if (!account) {
         return yield* Effect.fail(
@@ -914,12 +977,14 @@ export class CommercialBanks {
     bankId: number,
     accountNumber: string
   ): Effect.Effect<Account, UnknownBankError | UnknownAccountError> {
-    const accountRepo = this.db.accounts;
+    const commercialBankDbFor = this.commercialBankDbFor;
     const requireBank = this.requireBank.bind(this);
     return Effect.gen(function* () {
       yield* requireBank(bankId);
       const account = yield* Effect.promise(() =>
-        accountRepo.getByNumber({ books: bankId, number: accountNumber })
+        commercialBankDbFor(bankId).accounts.getByNumber({
+          number: accountNumber,
+        })
       );
       if (!account) {
         return yield* Effect.fail(

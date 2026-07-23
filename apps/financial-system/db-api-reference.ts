@@ -1,14 +1,16 @@
 // The database API, parsed from the source at request time so the
-// reference the workbench shows can never drift from the real repos —
-// the same no-second-source rule the tRPC router follows. One group per
-// repository (commercialBankRepo, accountRepo, claimRepo, settingRepo), plus the
-// `Db` container's `transaction` under `db`; the container's other
-// methods (dump, reset, the snapshot pair, destroy) are left out —
-// students never call them. Repo methods take one input object; the parser expands its
-// fields so the client can syntax-highlight the signature and build a
-// copy-ready call, `commercialBankRepo.create({ name })`.
+// reference the workbench shows can never drift from the real code —
+// the same no-second-source rule the tRPC router follows. One section
+// per institution handle — `centralBankDb` and `commercialBankDb`, the
+// variables a task binds — listing the repositories the handle carries
+// (one file each under packages/db/src/repos/, so each repo name links
+// to its file) plus the handle's own `transaction`. The handles' other
+// methods (createDatabase — prebuilt plumbing) are left out; students
+// never call them. Repo methods take one input object; the parser
+// expands its fields so the client can syntax-highlight the signature
+// and build a copy-ready call, `centralBankDb.accounts.create({ ... })`.
 
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 export interface DbApiParam {
@@ -26,22 +28,41 @@ export interface DbApiMethod {
   doc: string | null;
 }
 
-export interface DbApiGroup {
-  /** The bound variable a task uses, e.g. `commercialBankRepo`. */
-  repo: string;
+export interface DbApiRepo {
+  /** The field on the handle, e.g. `accounts` — a call is written
+   *  `<handle>.<name>.<method>(...)`. */
+  name: string;
+  /** The repo's own source file, repo-root-relative — for display. */
+  path: string;
+  /** Absolute path — powers the vscode:// link on the repo's name. */
+  abs: string;
   methods: DbApiMethod[];
 }
 
-const SOURCE = path.resolve(
-  import.meta.dirname,
-  '../../packages/db/src/bank-db.ts'
-);
+export interface DbApiHandle {
+  /** The bound variable a task uses: `centralBankDb` or
+   *  `commercialBankDb`. */
+  handle: string;
+  path: string;
+  abs: string;
+  /** The repositories the handle carries, in declaration order. */
+  repos: DbApiRepo[];
+  /** The handle's own transaction method. */
+  transaction: DbApiMethod | null;
+}
 
-// `export class CommercialBankRepo extends Repo {` → the
-// `commercialBankRepo` a task binds.
-const CLASS_RE = /^export class (\w+)Repo extends Repo \{$/;
-// The `Db` container itself → the `db` a task binds for `transaction`.
-const DB_CLASS_RE = /^export class Db /;
+const REPO_ROOT = path.resolve(import.meta.dirname, '../..');
+const DB_SRC = path.join(REPO_ROOT, 'packages/db/src');
+const REPOS_DIR = path.join(DB_SRC, 'repos');
+/** The institution handles, in teaching order. */
+const HANDLE_FILES = ['central-bank-db.ts', 'commercial-bank-db.ts'];
+
+// `export class AccountRepo extends Repo {` → a repository class.
+const REPO_CLASS_RE = /^export class (\w+Repo) extends Repo \{$/;
+// `export class CentralBankDb implements ... {` → an institution handle.
+const HANDLE_CLASS_RE = /^export class (\w+Db) /;
+// `  readonly accounts: AccountRepo;` → a repo field on a handle.
+const REPO_FIELD_RE = /^ {2}readonly (\w+): (\w+Repo);$/;
 const METHOD_RE = /^ {2}(?:async )?([a-z]\w*)(?:<\w+>)?\(/;
 
 /** Split on `separator` at bracket depth zero — `<>`, `()`, `{}` all
@@ -137,28 +158,24 @@ function parensBalanced(sig: string): boolean {
   return opened && depth === 0;
 }
 
-/** Parse the repo classes' public methods, grouped by repo. */
-export function dbApiReference(): DbApiGroup[] {
-  const lines = readFileSync(SOURCE, 'utf8').split('\n');
-  const groups: DbApiGroup[] = [];
-  let current: DbApiGroup | null = null;
+/** One file's classes matching `classRe`, with their public methods. */
+function parseClasses(
+  abs: string,
+  classRe: RegExp
+): { className: string; methods: DbApiMethod[] }[] {
+  const lines = readFileSync(abs, 'utf8').split('\n');
+  const classes: { className: string; methods: DbApiMethod[] }[] = [];
+  let current: { className: string; methods: DbApiMethod[] } | null = null;
   let doc: string[] | null = null; // accumulating a JSDoc block
   let lastDoc: string | null = null; // the finished block above a method
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i] ?? '';
 
-    const klass = CLASS_RE.exec(line);
+    const klass = classRe.exec(line);
     if (klass?.[1]) {
-      const repo = `${klass[1].charAt(0).toLowerCase()}${klass[1].slice(1)}Repo`;
-      current = { repo, methods: [] };
-      groups.push(current);
-      lastDoc = null;
-      continue;
-    }
-    if (DB_CLASS_RE.test(line)) {
-      current = { repo: 'db', methods: [] };
-      groups.push(current);
+      current = { className: klass[1], methods: [] };
+      classes.push(current);
       lastDoc = null;
       continue;
     }
@@ -174,7 +191,7 @@ export function dbApiReference(): DbApiGroup[] {
       doc.push(line);
       if (line.includes('*/')) {
         lastDoc = doc
-          .join(' ')
+          .join('\n')
           .replace(/\/\*\*|\*\//g, '')
           .replace(/^\s*\*\s?/gm, '')
           .replace(/\s+/g, ' ')
@@ -214,11 +231,7 @@ export function dbApiReference(): DbApiGroup[] {
         .replace(/\s+\)/g, ')')
         .replace(/,\s*\}/g, ' }')
         .replace(/;\s*\}/g, ' }');
-      // Of the `Db` container itself, only `transaction` is for tasks —
-      // the debug and lifecycle methods stay out.
-      if (current.repo !== 'db' || method[1] === 'transaction') {
-        current.methods.push(parseSignature(sig, lastDoc));
-      }
+      current.methods.push(parseSignature(sig, lastDoc));
       lastDoc = null;
       i = j;
       continue;
@@ -227,5 +240,62 @@ export function dbApiReference(): DbApiGroup[] {
     if (line.trim() !== '') lastDoc = null; // doc must sit right above
   }
 
-  return groups.filter(group => group.methods.length > 0);
+  return classes;
+}
+
+/** A handle class's repo fields, in declaration order. */
+function parseRepoFields(abs: string): { field: string; className: string }[] {
+  const fields: { field: string; className: string }[] = [];
+  for (const line of readFileSync(abs, 'utf8').split('\n')) {
+    const match = REPO_FIELD_RE.exec(line);
+    if (match?.[1] && match[2]) {
+      fields.push({ field: match[1], className: match[2] });
+    }
+  }
+  return fields;
+}
+
+function relative(abs: string): string {
+  return path.relative(REPO_ROOT, abs).replaceAll(path.sep, '/');
+}
+
+/** Parse the institution handles and the repositories they carry. */
+export function dbApiReference(): DbApiHandle[] {
+  const repoByClass = new Map<
+    string,
+    { path: string; abs: string; methods: DbApiMethod[] }
+  >();
+  for (const name of readdirSync(REPOS_DIR)
+    .filter(file => file.endsWith('.ts'))
+    .sort()) {
+    const abs = path.join(REPOS_DIR, name);
+    for (const parsed of parseClasses(abs, REPO_CLASS_RE)) {
+      repoByClass.set(parsed.className, {
+        path: relative(abs),
+        abs,
+        methods: parsed.methods,
+      });
+    }
+  }
+  const handles: DbApiHandle[] = [];
+  for (const name of HANDLE_FILES) {
+    const abs = path.join(DB_SRC, name);
+    const parsed = parseClasses(abs, HANDLE_CLASS_RE)[0];
+    if (!parsed) continue;
+    const repos: DbApiRepo[] = [];
+    for (const { field, className } of parseRepoFields(abs)) {
+      const repo = repoByClass.get(className);
+      if (repo) repos.push({ name: field, ...repo });
+    }
+    handles.push({
+      handle: `${parsed.className.charAt(0).toLowerCase()}${parsed.className.slice(1)}`,
+      path: relative(abs),
+      abs,
+      repos,
+      // Of the handle's own methods, only `transaction` is for tasks —
+      // createDatabase is prebuilt plumbing.
+      transaction: parsed.methods.find(m => m.name === 'transaction') ?? null,
+    });
+  }
+  return handles;
 }

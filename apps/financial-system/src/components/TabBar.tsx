@@ -5,6 +5,7 @@
 // is implemented (see gating.ts) — the caller passes the visible set.
 
 import {
+  ArrowLeftRight,
   Building2,
   Database,
   Landmark,
@@ -14,15 +15,32 @@ import {
 } from 'lucide-react';
 
 export type TabId =
-  'central-bank' | 'commercial-bank' | 'user' | 'database' | 'log';
+  | 'central-bank'
+  | 'commercial-bank'
+  | 'people'
+  | 'interbank-api'
+  | 'database'
+  | 'log';
+
+/** Every tab in display order. A tab's id is also its URL path
+ *  (`/database`), so views can be deep-linked — the guide does. */
+export const TAB_IDS: TabId[] = [
+  'central-bank',
+  'commercial-bank',
+  'people',
+  'interbank-api',
+  'database',
+  'log',
+];
 
 const PERSONAS: { id: TabId; label: string; icon: LucideIcon }[] = [
   { id: 'central-bank', label: 'Central Bank', icon: Landmark },
   { id: 'commercial-bank', label: 'Commercial Bank', icon: Building2 },
-  { id: 'user', label: 'People', icon: Users },
+  { id: 'people', label: 'People', icon: Users },
 ];
 
 const TOOLS: { id: TabId; label: string; icon: LucideIcon }[] = [
+  { id: 'interbank-api', label: 'Interbank API', icon: ArrowLeftRight },
   { id: 'database', label: 'Database', icon: Database },
   { id: 'log', label: 'Log', icon: ScrollText },
 ];

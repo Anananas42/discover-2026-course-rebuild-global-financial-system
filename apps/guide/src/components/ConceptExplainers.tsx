@@ -5,6 +5,8 @@ import type { ReactNode } from 'react';
 import { Button } from '@banks/shared/browser/Button.tsx';
 import { TASK } from '@banks/shared/curriculum.ts';
 
+import { FinancialSystemLink } from './CurriculumText.tsx';
+
 // The onramp explainers: the seven concepts task 1.1 would otherwise
 // need all at once, each taught as a card inside the stage-0 task that
 // applies it — introduced and instantly used, never a wall of theory
@@ -144,12 +146,14 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
     title: 'Reading and writing the database',
     body: (
       <p>
-        Your country's banks, accounts, and balances will live in a real
-        database. Your code never talks to it directly — prebuilt repositories
-        read and write it, one per table:{' '}
-        <Code>commercialBankRepo.get(...)</Code>,{' '}
-        <Code>accountRepo.setBalance(...)</Code>. In this task a stand-in plays
-        that role: ask it for one balance, hand back its answer.
+        Your country's banks, accounts, and balances will live in real databases
+        — one per institution, exactly like the real world: the central bank
+        cannot see a commercial bank's database, nor the other way around. Your
+        code holds its own institution's handle and reads and writes through
+        prebuilt repositories, one per table:{' '}
+        <Code>centralBankDb.accounts.setBalance(...)</Code>,{' '}
+        <Code>commercialBankDb.claims.create(...)</Code>. In this task a
+        stand-in plays that role: ask it for one balance, hand back its answer.
       </p>
     ),
   },
@@ -159,26 +163,32 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
       <>
         <p>
           The financial system starts almost empty: the Central Bank tab, and
-          two raw views — Database and Log. Every operation you implement adds
-          its button.{' '}
+          three raw views — Interbank API, Database, and Log. Every operation
+          you implement adds its button.{' '}
           <b>
-            The Commercial Bank tab, with "Open a new bank" on it, appears as
-            soon as you start writing this task's code.
+            The "License a new commercial bank" button appears on the Central
+            Bank tab — and the Commercial Bank tab with it — as soon as you
+            start writing this task's code.
           </b>
         </p>
         <p>
-          The Database tab is your map. It shows every table in the country,
-          live — after each click, look there for what changed. This task's
-          story names three new rows: the bank, its reserve account, and its own
-          account.
+          The{' '}
+          <FinancialSystemLink path="/database">
+            Database tab
+          </FinancialSystemLink>{' '}
+          is your map. It shows every institution's database in the country,
+          live — after each click, look there for what changed. This task's code
+          writes two new rows under Central bank — the bank in the register, its
+          reserve account — and a whole section appears on its own: the bank's
+          database, brought online by the bank's own systems.
         </p>
         <p>
-          Your code writes those tables through the prebuilt repositories from
-          the briefing, one per table: <Code>db.commercialBanks</Code> — the
-          central bank's register of licensed banks — and{' '}
-          <Code>db.accounts</Code>. Their methods live in{' '}
-          <Code>packages/db/src/bank-db.ts</Code> — open it and find the ones
-          you need, or type <Code>db.</Code> in the editor and read the list.
+          The same tab opens with the Database API: your institution's database
+          handle — <Code>centralBankDb</Code> here — carrying the prebuilt
+          repositories from the briefing, one per table, that your code writes
+          those tables through. Everything you need is right there — click a
+          repository's name to open its file in VS Code, or click a method to
+          copy a ready-to-paste call.
         </p>
       </>
     ),
@@ -210,7 +220,10 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
           The database promises that everything inside lands together — or, if
           anything throws, nothing does. The call hands back a Promise, so it is
           waited for like any other:{' '}
-          <Code>yield* Effect.promise(() =&gt; db.transaction(...))</Code>.
+          <Code>yield* Effect.promise(() =&gt; db.transaction(...))</Code>. In
+          the mission stages the same call rides your institution's own database
+          handle — <Code>commercialBankDb.transaction(...)</Code> — because a
+          transaction can never span two institutions' databases.
         </p>
       </>
     ),

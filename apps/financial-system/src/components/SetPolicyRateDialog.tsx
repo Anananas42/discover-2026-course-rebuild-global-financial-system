@@ -9,7 +9,7 @@ import { OperationDialog } from './OperationDialog.tsx';
 import { RATE_SLIDER, rateSliderValue, sliderPercent } from './rate-slider.ts';
 
 // The central banker moves the rate — the announcement everyone hears on
-// the news. Entered in percent, stored in the central bank's books, and
+// the news. Entered in percent, stored in the central bank's own database, and
 // charged on new loans only: existing claims keep the price they were
 // made at, like a signed loan contract.
 

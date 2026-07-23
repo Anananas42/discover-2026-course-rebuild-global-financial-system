@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 
 import { api } from '../api.ts';
 import { InspectorSection } from './InspectorSection.tsx';
-import { InstitutionBooks } from './InstitutionBooks.tsx';
+import { InstitutionDatabase } from './InstitutionDatabase.tsx';
 
 // A persona screen's slice of the Database god view: only the schemas
-// that are this persona's own books, collapsed by default, fetched only
+// that are this persona's own database, collapsed by default, fetched only
 // while open. The full, unfiltered truth stays on the Database tab.
 
 type Dump = Awaited<ReturnType<typeof api.debug.dump.query>>;
@@ -50,7 +50,7 @@ export function DatabaseSection({
     >
       {slice?.length ? (
         slice.map(institution => (
-          <InstitutionBooks
+          <InstitutionDatabase
             key={institution.schema}
             institution={institution}
           />

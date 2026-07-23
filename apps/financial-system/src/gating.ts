@@ -3,14 +3,14 @@
 // query carries the task map), and a persona tab appears once any of its
 // operations exist. The Central Bank is the exception and the landing
 // tab: the institution exists from the moment the system is initialized,
-// so its page is always there — books first, operations appearing task
+// so its page is always there — balance sheet first, operations appearing task
 // by task. The tool surfaces — Database and Log — are always available
 // too, truthful even about an empty world, but they are raw views, never
 // the landing.
 
 import { TASK } from '@banks/shared/curriculum.ts';
 
-import type { TabId } from './components/TabBar.tsx';
+import { TAB_IDS, type TabId } from './components/TabBar.tsx';
 
 export type TaskStatusMap = Record<string, boolean>;
 
@@ -18,13 +18,14 @@ export type TaskStatusMap = Record<string, boolean>;
 const TAB_TASKS: Partial<Record<TabId, string[]>> = {
   'commercial-bank': [
     TASK.openBank,
+    TASK.recordCentralBankNotice,
     TASK.receiveRepayment,
     TASK.receivePayment,
     TASK.payFromBank,
     TASK.lendToClient,
     TASK.writeOffLoan,
   ],
-  user: [
+  people: [
     TASK.becomeClient,
     TASK.openAccount,
     TASK.renamePerson,
@@ -43,14 +44,7 @@ export function anyDone(tasks: TaskStatusMap, taskIds: string[]): boolean {
 
 /** The tabs the workbench shows, in display order. */
 export function visibleTabs(tasks: TaskStatusMap): TabId[] {
-  const all: TabId[] = [
-    'central-bank',
-    'commercial-bank',
-    'user',
-    'database',
-    'log',
-  ];
-  return all.filter(tab => {
+  return TAB_IDS.filter(tab => {
     const gate = TAB_TASKS[tab];
     return gate === undefined || anyDone(tasks, gate);
   });

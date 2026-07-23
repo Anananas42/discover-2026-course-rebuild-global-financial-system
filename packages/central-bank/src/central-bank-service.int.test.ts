@@ -2,8 +2,9 @@ import Big from 'big.js';
 import { Effect } from 'effect';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import type { Db } from '@banks/db/bank-db.ts';
+import { CommercialBanks } from '@banks/commercial-bank/commercial-bank-service.ts';
 import { connect } from '@banks/db/database.ts';
+import type { FinancialSystemDb } from '@banks/db/financial-system-db.ts';
 
 import {
   DuplicateBankNameError,
@@ -20,23 +21,26 @@ import {
 import { CentralBank, parseAmount } from './central-bank-service.ts';
 import { CURRENCY } from './currency.ts';
 
-let db: Db;
+let system: FinancialSystemDb;
 let centralBank: CentralBank;
 
 beforeAll(async () => {
-  db = await connect();
-  centralBank = new CentralBank(db);
+  system = await connect();
+  centralBank = new CentralBank(system.centralBank);
+  // The commercial layer wires itself into the central bank as it is
+  // constructed — licensing and notices need the banks' side connected.
+  new CommercialBanks(bankId => system.commercialBank(bankId), centralBank);
 });
 
 beforeEach(async () => {
-  await db.reset();
+  await system.reset();
 });
 
 afterAll(async () => {
-  await db.destroy();
+  await system.destroy();
 });
 
-describe('task 1.1: opening a new bank', () => {
+describe('task 1.1: licensing a new commercial bank', () => {
   it('registers a bank and opens its reserve account', async () => {
     const bank = await Effect.runPromise(
       centralBank.registerBank({ name: 'First Bank' })
@@ -48,11 +52,11 @@ describe('task 1.1: opening a new bank', () => {
     expect(books.reserveAccounts[0]?.balance.eq(0)).toBe(true);
   });
 
-  it("opens the bank's own account in the bank's own database", async () => {
+  it("the bank's own database comes online with its own account in it", async () => {
     const bank = await Effect.runPromise(
       centralBank.registerBank({ name: 'First Bank' })
     );
-    const accounts = await db.accounts.list({ books: bank.id });
+    const accounts = await system.commercialBank(bank.id).accounts.list();
     expect(accounts).toHaveLength(1);
     expect(accounts[0]?.owner).toBe('First Bank');
     // The empty personal id marks an institution's own account.
@@ -76,7 +80,7 @@ describe('task 1.1: opening a new bank', () => {
   });
 });
 
-describe('task 2.1: lending to a bank', () => {
+describe('task 2.2: lending to a bank', () => {
   it('the bank receives the reserves and owes the amount plus interest', async () => {
     const bank = await Effect.runPromise(
       centralBank.registerBank({ name: 'First Bank' })
@@ -103,7 +107,7 @@ describe('task 2.1: lending to a bank', () => {
     );
     // The bank owes 200 more than it received — its own account goes
     // into the red until it earns income by lending on.
-    const accounts = await db.accounts.list({ books: bank.id });
+    const accounts = await system.commercialBank(bank.id).accounts.list();
     expect(accounts[0]?.balance.eq('-200')).toBe(true);
   });
 
@@ -196,7 +200,7 @@ describe('task 3.1: transferring reserves', () => {
   });
 });
 
-describe('task 2.2: receiving repayments', () => {
+describe('task 2.3: receiving repayments', () => {
   it('a repayment returns reserves and shrinks the debt by the same amount', async () => {
     const bank = await Effect.runPromise(
       centralBank.registerBank({ name: 'First Bank' })
@@ -248,7 +252,7 @@ describe('task 3.2: paying a bank', () => {
     expect(books.reserveAccounts[0]?.balance.eq('103')).toBe(true);
     expect(books.equity.eq('2')).toBe(true);
     // The bank's own account: -5 of interest expense, +3 received.
-    const accounts = await db.accounts.list({ books: bank.id });
+    const accounts = await system.commercialBank(bank.id).accounts.list();
     expect(accounts[0]?.balance.eq('-2')).toBe(true);
   });
 
@@ -309,7 +313,7 @@ describe('task 3.2: paying a bank', () => {
   });
 });
 
-describe("task 2.3: writing off a bank's debt", () => {
+describe("task 2.4: writing off a bank's debt", () => {
   it('the central bank takes the loss and the bank keeps the reserves', async () => {
     const bank = await Effect.runPromise(
       centralBank.registerBank({ name: 'First Bank' })
@@ -330,7 +334,7 @@ describe("task 2.3: writing off a bank's debt", () => {
     expect(books.equity.eq('-100')).toBe(true);
     // Forgiveness is the debtor's gain: the bank's liability vanished,
     // so its equity grew by the written-off amount (-5 + 105).
-    const accounts = await db.accounts.list({ books: bank.id });
+    const accounts = await system.commercialBank(bank.id).accounts.list();
     expect(accounts[0]?.balance.eq('100')).toBe(true);
   });
 
@@ -345,7 +349,7 @@ describe("task 2.3: writing off a bank's debt", () => {
   });
 });
 
-describe('task 2.4: setting the central bank interest rate', () => {
+describe('task 2.5: setting the central bank interest rate', () => {
   it('defaults to 5%', async () => {
     const rate = await Effect.runPromise(centralBank.policyRate());
     expect(rate.eq('0.05')).toBe(true);

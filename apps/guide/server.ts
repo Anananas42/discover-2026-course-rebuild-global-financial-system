@@ -175,6 +175,7 @@ createJsonServer(async (req, res) => {
         id: draft.marker.id,
         title: draft.marker.title,
         story: taskById(draft.marker.id)?.story ?? '',
+        requirements: taskById(draft.marker.id)?.requirements ?? null,
         steps: taskById(draft.marker.id)?.steps ?? [],
         stage: draft.stage,
         scenarios: draft.scenarios,

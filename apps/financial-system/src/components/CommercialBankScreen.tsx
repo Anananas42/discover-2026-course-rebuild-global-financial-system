@@ -21,8 +21,8 @@ import { formatIban, formatMoney } from '../format.ts';
 import { Amount } from './Amount.tsx';
 import { CopyIbanButton } from './CopyIbanButton.tsx';
 import { DatabaseSection } from './DatabaseSection.tsx';
+import { ReceiveNoticeDialog } from './ReceiveNoticeDialog.tsx';
 import { ReceivePaymentDialog } from './ReceivePaymentDialog.tsx';
-import { OpenBankDialog } from './OpenBankDialog.tsx';
 import { LendToClientDialog } from './LendToClientDialog.tsx';
 import { LogEntries } from './LogEntries.tsx';
 import { LogSection } from './LogSection.tsx';
@@ -257,24 +257,6 @@ export function CommercialBankScreen({
       </div>
 
       <div className="mb-5 flex flex-wrap gap-3">
-        {isDone(config.tasks, TASK.openBank) && (
-          <ActionGroup
-            label="New bank"
-            hint={
-              <>
-                A bank begins as an entry in the central bank's database: a
-                reserve account opened in its name.
-                <p className="mt-1">
-                  That account plays the same role for the bank as your account
-                  at a commercial bank plays for you: the bank keeps its money
-                  there and pays other banks from it.
-                </p>
-              </>
-            }
-          >
-            <OpenBankDialog onOpened={bank => setSelectedId(String(bank.id))} />
-          </ActionGroup>
-        )}
         {isDone(config.tasks, TASK.payFromBank) && (
           <ActionGroup
             label="Payments"
@@ -344,31 +326,43 @@ export function CommercialBankScreen({
             )}
           </ActionGroup>
         )}
-        {isDone(config.tasks, TASK.receivePayment) && selected && (
-          <ActionGroup
-            debug
-            label="Debug"
-            hint={
-              <>
-                Debug buttons change the system's raw state by hand — good for
-                experiments, not something a real bank does.
-                <p className="mt-1">
-                  A payment message normally arrives only after the sender was
-                  debited and the reserves settled. Received bare, it leaves
-                  this bank's balance sheet unbalanced: money arrived that
-                  nothing explains.
-                </p>
-              </>
-            }
-          >
-            <ReceivePaymentDialog
-              bank={selected}
-              banks={banks}
-              accounts={receivable}
-              currency={config.currency}
-            />
-          </ActionGroup>
-        )}
+        {anyDone(config.tasks, [
+          TASK.recordCentralBankNotice,
+          TASK.receivePayment,
+        ]) &&
+          selected && (
+            <ActionGroup
+              debug
+              label="Debug"
+              hint={
+                <>
+                  Debug buttons change the system's raw state by hand — good for
+                  experiments, not something a real bank does.
+                  <p className="mt-1">
+                    A notice or a payment message normally arrives only after a
+                    real operation at the other institution. Received bare, it
+                    leaves this bank's balance sheet unbalanced: its records
+                    changed, and nothing elsewhere explains it.
+                  </p>
+                </>
+              }
+            >
+              {isDone(config.tasks, TASK.recordCentralBankNotice) && (
+                <ReceiveNoticeDialog
+                  bank={selected}
+                  currency={config.currency}
+                />
+              )}
+              {isDone(config.tasks, TASK.receivePayment) && (
+                <ReceivePaymentDialog
+                  bank={selected}
+                  banks={banks}
+                  accounts={receivable}
+                  currency={config.currency}
+                />
+              )}
+            </ActionGroup>
+          )}
       </div>
 
       {books && (
@@ -639,7 +633,7 @@ export function CommercialBankScreen({
             </div>
             {!balanced && (
               <UnbalancedBar>
-                The books do not balance: assets{' '}
+                The balance sheet does not balance: assets{' '}
                 {formatMoney(books.totalAssets)} {config.currency}, liabilities
                 + equity {formatMoney(books.totalLiabilitiesAndEquity)}{' '}
                 {config.currency} — off by {formatMoney(difference)}{' '}
@@ -769,7 +763,7 @@ export function CommercialBankScreen({
         {selected && (
           <DatabaseSection
             version={version}
-            label={`Database — ${selected.name}'s books`}
+            label={`Database — ${selected.name}'s own database`}
             schemas={[`bank_${selected.id}`]}
           />
         )}

@@ -7,7 +7,7 @@
 //
 // The log persists in localStorage — the operator's trace is a browser
 // concern like the theme, never domain state (a bank's statements would
-// be a transactions table in its books; the log also holds what no book
+// be a transactions table in its database; the log also holds what no ledger
 // would: failed attempts, blocked calls, resets). Reset clears it: a new
 // world starts with a new trace, and stale entries would otherwise match
 // recycled bank and account ids.

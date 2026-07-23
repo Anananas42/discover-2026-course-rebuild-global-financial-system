@@ -28,8 +28,9 @@ import {
   parseAmount,
 } from '@banks/central-bank/central-bank-service.ts';
 import { CURRENCY } from '@banks/central-bank/currency.ts';
+import { bicFor } from '@banks/central-bank/bank-identity.ts';
 import { CommercialBanks } from '@banks/commercial-bank/commercial-bank-service.ts';
-import { bicFor, ibanFor } from '@banks/commercial-bank/iban.ts';
+import { ibanFor } from '@banks/commercial-bank/iban.ts';
 import { connect } from '@banks/db/database.ts';
 
 import { readCourseConfig } from '../shared/course-config.ts';
@@ -37,12 +38,93 @@ import { scanTaskStatus } from '../shared/task-status.ts';
 import { dbApiReference } from './db-api-reference.ts';
 import { runEffect } from './effect-runner.ts';
 import { classifyOutcome } from './error-outcome.ts';
+import { interbankApiReference } from './interbank-api-reference.ts';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '../..');
 
-const db = await connect();
-const centralBank = new CentralBank(db);
-const commercialBanks = new CommercialBanks(db, centralBank);
+const system = await connect();
+const centralBank = new CentralBank(system.centralBank);
+const commercialBanks = new CommercialBanks(
+  bankId => system.commercialBank(bankId),
+  centralBank
+);
+
+/** One message that traveled between institutions — what the Interbank
+ *  API tab's live feed shows. Held in memory: the feed is the
+ *  workbench's wire trace, not any institution's state, and a reset
+ *  starts a new trace. */
+interface WireMessage {
+  seq: number;
+  at: number;
+  channel: 'notice' | 'license' | 'payment';
+  from: string;
+  to: string;
+  /** The named fields, verbatim — amounts as strings. */
+  fields: Record<string, string>;
+}
+
+const wireMessages: WireMessage[] = [];
+let wireSeq = 0;
+
+function recordWireMessage(message: Omit<WireMessage, 'seq' | 'at'>): void {
+  wireMessages.push({ seq: ++wireSeq, at: Date.now(), ...message });
+  if (wireMessages.length > 200) wireMessages.shift();
+}
+
+/** A licensed bank's display name, for feed labels. */
+async function bankLabel(bankId: number): Promise<string> {
+  const bank = await system.centralBank.commercialBanks.get({ id: bankId });
+  return bank?.name ?? `bank ${String(bankId)}`;
+}
+
+// The feed taps the wiring, never the domain: the notice port the
+// central bank holds is re-wired to a recording wrapper (the commercial
+// layer self-registered in its constructor; this overrides that with a
+// decorated port delegating to the same object), and the payment-message
+// tap is the service's own prebuilt observeMessages seam.
+centralBank.connectCommercialBanks({
+  recordOwnAccountChangeFromCentralBank: notice =>
+    Effect.gen(function* () {
+      const to = yield* Effect.promise(() => bankLabel(notice.bankId));
+      recordWireMessage({
+        channel: 'notice',
+        from: 'Central bank',
+        to,
+        fields: {
+          bankId: String(notice.bankId),
+          kind: notice.kind,
+          amount: notice.amount.toString(),
+        },
+      });
+      return yield* commercialBanks.recordOwnAccountChangeFromCentralBank(
+        notice
+      );
+    }),
+  connectBank: input =>
+    Effect.gen(function* () {
+      recordWireMessage({
+        channel: 'license',
+        from: 'Central bank',
+        to: input.name,
+        fields: { bankId: String(input.bankId), name: input.name },
+      });
+      return yield* commercialBanks.connectBank(input);
+    }),
+});
+commercialBanks.observeMessages(message => {
+  recordWireMessage({
+    channel: 'payment',
+    from: message.fromBic,
+    to: message.toBic,
+    fields: {
+      fromBic: message.fromBic,
+      fromIban: message.fromIban,
+      toBic: message.toBic,
+      toIban: message.toIban,
+      amount: message.amount.toString(),
+    },
+  });
+});
 
 /** Money leaves the API as a fixed-decimal string in major units. */
 function money(amount: Big): string {
@@ -62,14 +144,14 @@ const t = initTRPC.create({
 });
 
 /** True when every institution's sheet balances — the same comparisons
- *  the screens' conservation bars make, computed from the same books. */
+ *  the screens' conservation bars make, computed from the same rows. */
 async function systemBalanced(): Promise<boolean> {
   const central = await runEffect(centralBank.balanceSheet());
   if (!central.totalClaims.eq(central.totalReserves.plus(central.equity))) {
     return false;
   }
   const zero = new Big(0);
-  const banks = await db.commercialBanks.list();
+  const banks = await system.centralBank.commercialBanks.list();
   for (const bank of banks) {
     const books = await runEffect(
       commercialBanks.balanceSheet({ bankId: bank.id })
@@ -90,10 +172,10 @@ async function systemBalanced(): Promise<boolean> {
 
 /** Overwrites the snapshot slot whenever the whole system balances — the
  *  state `debug.revertToBalanced` returns to after a debug action breaks
- *  the books. While the books stay broken, the slot stays untouched. */
+ *  the records. While they stay broken, the slot stays untouched. */
 async function captureBalancedState(): Promise<void> {
   try {
-    if (await systemBalanced()) await db.saveSnapshot();
+    if (await systemBalanced()) await system.saveSnapshot();
   } catch {
     // Broken or unimplemented domain code must not fail the operation
     // that triggered the capture; the previous snapshot stays.
@@ -127,8 +209,8 @@ export const appRouter = t.router({
       currency: CURRENCY.code,
       decimals: CURRENCY.decimals,
       // Rates as plain ratio strings ('0.10' = 10%) — live state from
-      // the central bank's books; each bank's own lending rate travels
-      // with its books, not here.
+      // the central bank's own database; each bank's own lending rate
+      // travels with its balance sheet, not here.
       policyRate: policyRate.toString(),
       reserveRatio: reserveRatio.toString(),
       /** Task id → implemented; the workbench reveals UI per task. */
@@ -138,15 +220,16 @@ export const appRouter = t.router({
 
   banks: t.router({
     list: procedure.query(async () => {
-      const banks = await db.commercialBanks.list();
+      const banks = await system.centralBank.commercialBanks.list();
       /** Each bank with its BIC — how payment messages name it. */
       return banks.map(bank => ({ ...bank, bic: bicFor(bank.id) }));
     }),
     open: procedure
       .input(z.object({ name: z.string() }))
       .mutation(({ input }) => runEffect(centralBank.registerBank(input))),
-    /** A bank's full balance sheet: its own books plus its slice of the
-     *  central bank's (reserves held there, debt owed there). */
+    /** A bank's full balance sheet: its own database's side plus its
+     *  slice of the central bank's (reserves held there, debt owed
+     *  there). */
     balanceSheet: procedure
       .input(z.object({ bankId: z.number().int() }))
       .query(async ({ input }) => {
@@ -217,6 +300,48 @@ export const appRouter = t.router({
         );
         return { totalDebt: money(debt) };
       }),
+    /** Debug: hand-delivers a raw central bank notice to a bank, with no
+     *  operation at the central bank behind it — the workbench's lever
+     *  for the receiving half alone (task 2.1). The bank's own account
+     *  moves, nothing backs it, and the sheet stops balancing on
+     *  purpose. The amount is signed from the bank's perspective, like a
+     *  real notice; the sign is peeled off so `parseAmount` can check
+     *  the digits and put back on for delivery. */
+    receiveCentralBankNotice: procedure
+      .input(
+        z.object({
+          bankId: z.number().int(),
+          kind: z.enum(['interest-charged', 'payment', 'debt-forgiven']),
+          amount: z.string(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const raw = input.amount.trim();
+        const negative = raw.startsWith('-');
+        const amount = await runEffect(
+          parseAmount(negative ? raw.slice(1) : raw)
+        );
+        const signed = negative ? amount.neg() : amount;
+        // The lever speaks the same wire the central bank does, so the
+        // simulated notice shows up in the feed like a real one.
+        recordWireMessage({
+          channel: 'notice',
+          from: 'Central bank',
+          to: await bankLabel(input.bankId),
+          fields: {
+            bankId: String(input.bankId),
+            kind: input.kind,
+            amount: signed.toString(),
+          },
+        });
+        await runEffect(
+          commercialBanks.recordOwnAccountChangeFromCentralBank({
+            bankId: input.bankId,
+            kind: input.kind,
+            amount: signed,
+          })
+        );
+      }),
     /** Debug: hand-delivers a raw payment message to a bank, skipping
      *  acceptance and settlement — the workbench's lever for the
      *  receiving half alone. Money appears with nothing settled behind
@@ -232,12 +357,21 @@ export const appRouter = t.router({
         })
       )
       .mutation(async ({ input }) => {
+        const amount = await runEffect(parseAmount(input.amount));
+        recordWireMessage({
+          channel: 'payment',
+          from: input.fromBic,
+          to: input.toBic,
+          fields: {
+            fromBic: input.fromBic,
+            fromIban: input.fromIban,
+            toBic: input.toBic,
+            toIban: input.toIban,
+            amount: amount.toString(),
+          },
+        });
         const credited = await runEffect(
-          parseAmount(input.amount).pipe(
-            Effect.flatMap(amount =>
-              commercialBanks.receivePayment({ ...input, amount })
-            )
-          )
+          commercialBanks.receivePayment({ ...input, amount })
         );
         return { recipient: credited.owner, balance: money(credited.balance) };
       }),
@@ -472,15 +606,28 @@ export const appRouter = t.router({
       ),
   }),
 
+  interbank: t.router({
+    /** The contract between institutions, parsed live from the source
+     *  (never drifts) — what the Interbank API tab renders. */
+    contract: procedure.query(() => interbankApiReference()),
+    /** The messages that traveled since the server started (or the last
+     *  reset) — the workbench's wire trace, oldest first. */
+    messages: procedure.query(() => wireMessages),
+  }),
+
   debug: t.router({
-    /** Every institution's books, verbatim — amounts in minor units. */
-    dump: procedure.query(() => db.dump()),
-    /** Deletes all financial system data. Tests use a separate database. */
-    reset: procedure.mutation(() => db.reset()),
+    /** Every institution's tables, verbatim — amounts in minor units. */
+    dump: procedure.query(() => system.dump()),
+    /** Deletes all financial system data. Tests use a separate database.
+     *  A new world starts with a new wire trace. */
+    reset: procedure.mutation(async () => {
+      await system.reset();
+      wireMessages.length = 0;
+    }),
     /** Restores the last state in which every balance sheet balanced —
-     *  the undo for debug actions that break the books on purpose. */
+     *  the undo for debug actions that break the records on purpose. */
     revertToBalanced: procedure.mutation(async () => {
-      const restored = await db.restoreSnapshot();
+      const restored = await system.restoreSnapshot();
       if (!restored) {
         throw new Error('No balanced state has been remembered yet.');
       }

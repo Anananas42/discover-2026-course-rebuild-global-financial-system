@@ -18,10 +18,19 @@ export interface CurriculumTask {
   id: string;
   /** The functionality, as a user story: who does what, and why. */
   story: string;
+  /** The story's detail, spelled out: a lead-in line and one business
+   *  requirement per bullet — rendered as the story's next paragraph,
+   *  same voice, same size. Only where the story would otherwise pack
+   *  several obligations into one sentence; most tasks read fine as the
+   *  story alone. */
+  requirements?: { intro: string; items: string[] };
   /** How to walk the story by hand, in order — in the financial system
    *  from stage 1 on; stage 0 walks the code and the guide itself.
    *  Written for the moment the task lands: they only use operations
-   *  that exist by then. */
+   *  that exist by then.
+   *  Steps and requirements may carry markdown-style links on the `fs:`
+   *  scheme — `[Database tab](fs:/database)` — pointing at a financial
+   *  system view; the guide renders them as links (CurriculumText). */
   steps: string[];
 }
 
@@ -56,10 +65,11 @@ export interface CurriculumStage {
 /** Task ids by name, for the UI surfaces they unlock. */
 export const TASK = {
   openBank: '1.1',
-  lendToBank: '2.1',
-  receiveRepayment: '2.2',
-  writeOffBankDebt: '2.3',
-  setPolicyRate: '2.4',
+  recordCentralBankNotice: '2.1',
+  lendToBank: '2.2',
+  receiveRepayment: '2.3',
+  writeOffBankDebt: '2.4',
+  setPolicyRate: '2.5',
   transferReserves: '3.1',
   payBank: '3.2',
   internalTransfer: '4.1',
@@ -170,11 +180,24 @@ export const CURRICULUM: CurriculumStage[] = [
       {
         id: TASK.openBank,
         story:
-          'As the central bank, I license a new commercial bank: I register its name and open its reserve account with me — and the new bank starts its fresh database with its own account.',
+          'As the central bank, I license a commercial bank into the rebuilt financial system.',
+        // The first real task spells its story out: one business
+        // requirement per bullet — each a row findable on the Database
+        // tab. The bank's own side (its database, its own account) is
+        // deliberately absent: banks run their own systems, and prebuilt
+        // code brings them online when the license lands.
+        requirements: {
+          intro: 'Licensing a commercial bank consists of the following steps:',
+          items: [
+            "Register the bank, under its name, in the central bank's register of commercial banks.",
+            "Open the bank's reserve account — its money held at the central bank — in the central bank's database.",
+          ],
+        },
         steps: [
-          'In the financial system, open the Commercial Bank tab and click "Open a new bank".',
+          'In the financial system, open the [Central Bank tab](fs:/central-bank) and click "License a new commercial bank".',
           "Name your country's first bank.",
-          'In the Database tab, find your bank in the commercial_banks table under Central bank, its reserve account in the accounts table, and its own account in the section named after your bank.',
+          'In the [Database tab](fs:/database), you can now see the new bank in the commercial_banks table and its reserve account in the accounts table, both under Central bank.',
+          "There is also a whole section named after your bank: the bank's own database, brought online by the bank's own systems the moment your license landed — your code never touches it.",
         ],
       },
     ],
@@ -189,13 +212,24 @@ export const CURRICULUM: CurriculumStage[] = [
       'Money exists: lending creates reserves, repayment destroys them, a default is written off.',
     tasks: [
       {
+        id: TASK.recordCentralBankNotice,
+        story:
+          'As a commercial bank, I receive a notice from the central bank — it charged me interest, paid me, or forgave my debt — and I record the change on my own account, in my own database.',
+        steps: [
+          "This is the receiving half of everything the central bank does to a bank: nobody can write another institution's database, so the central bank sends a notice and the bank records its own side. The next tasks build the central bank's side — each ends by sending exactly this notice.",
+          'On the [Commercial Bank tab](fs:/commercial-bank), use "Receive a central bank notice" in the dashed Debug box and watch the bank\'s own account move by the signed amount.',
+          'Watch the notice itself cross the wire on the [Interbank API tab](fs:/interbank-api).',
+          "The sheet stops balancing: the bank recorded news that nothing at the central bank backs — real notices arrive only from the central bank's real operations.",
+        ],
+      },
+      {
         id: TASK.lendToBank,
         story:
           'As the central bank, I create money by lending to a commercial bank: its reserves grow by the amount, and it owes the amount plus interest at the central bank interest rate.',
         steps: [
           'On the Central Bank tab, click "Lend to a bank" and lend, say, 1000.',
           "Watch the bank's reserves grow by 1000 and the claim on it read more (at a 5% rate, 1050).",
-          "On the Commercial Bank tab, see the bank's own account go negative by the interest (at 5%, -50): the loan's price is the bank's expense.",
+          "On the Commercial Bank tab, see the bank's own account go negative by the interest (at 5%, -50): the loan's price is the bank's expense, recorded by the bank itself when your notice arrives.",
         ],
       },
       {
@@ -244,7 +278,7 @@ export const CURRICULUM: CurriculumStage[] = [
         story:
           "As the central bank, I settle a payment between two commercial banks by moving reserves from one bank's account to the other's — never creating or destroying money.",
         steps: [
-          'Open a second bank and lend it reserves.',
+          'License a second bank and lend it reserves.',
           'On the Central Bank tab, find "Transfer reserves" in the dashed Debug box and move some from one bank to the other.',
           'Check both reserve accounts at the central bank: the total never changed.',
           "On the Commercial Bank tab, see both banks' balance sheets stop balancing: money moved with no payment behind it, so neither bank's records show why.",
@@ -297,7 +331,7 @@ export const CURRICULUM: CurriculumStage[] = [
         steps: [
           'The engine routes here when the recipient is at another bank.',
           'The next task puts the first button on it.',
-          'From then on, you can watch the payments table in the Database tab: every interbank payment leaves a row going accepted → settled → completed.',
+          'From then on, you can watch the payments table in the [Database tab](fs:/database) — every interbank payment leaves a row going accepted → settled → completed — and the message itself crossing the wire on the [Interbank API tab](fs:/interbank-api).',
         ],
       },
       {

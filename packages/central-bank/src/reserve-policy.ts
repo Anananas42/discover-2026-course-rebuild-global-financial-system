@@ -4,7 +4,7 @@
 // at least the required share of its client deposits — the brake on
 // infinite lending, and the reason a bank borrows reserves from the
 // central bank before it can lend to anyone. It is the central bank's
-// dial: stored in its books, set from its screen, checked whenever a
+// dial: stored in its own database, set from its screen, checked whenever a
 // bank lends.
 //
 // Simplified on purpose: the real Czech requirement is 2% and does not

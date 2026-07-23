@@ -13,8 +13,9 @@ import { visibleTabs } from './gating.ts';
 import { CentralBankScreen } from './components/CentralBankScreen.tsx';
 import { CommercialBankScreen } from './components/CommercialBankScreen.tsx';
 import { DatabaseScreen } from './components/DatabaseScreen.tsx';
+import { InterbankScreen } from './components/InterbankScreen.tsx';
 import { LogScreen } from './components/LogScreen.tsx';
-import { TabBar, type TabId } from './components/TabBar.tsx';
+import { TAB_IDS, TabBar, type TabId } from './components/TabBar.tsx';
 import { UserScreen } from './components/UserScreen.tsx';
 
 // The workbench: three persona screens (who you are acting as) plus the
@@ -23,12 +24,24 @@ import { UserScreen } from './components/UserScreen.tsx';
 // behavior without a click — `version` bumps and every screen refetches
 // everything. Data is toy-sized; staleness must never be a debugging
 // variable.
+//
+// Each tab lives at its own URL (/database, /log, …): the guide
+// deep-links straight into a view, a reload stays where it was, and
+// back/forward walk the visited tabs.
 
 type Config = Awaited<ReturnType<typeof api.config.query>>;
 
+/** The tab a URL names, `/database` → 'database'; null off the map. */
+function tabFromLocation(): TabId | null {
+  const segment = window.location.pathname.split('/')[1] ?? '';
+  return (TAB_IDS as string[]).includes(segment) ? (segment as TabId) : null;
+}
+
 export function App() {
   const [theme, setTheme] = useTheme();
-  const [tab, setTab] = useState<TabId>('central-bank');
+  const [tab, setTab] = useState<TabId>(
+    () => tabFromLocation() ?? 'central-bank'
+  );
   const [config, setConfig] = useState<Config | null>(null);
   const [connectionError, setConnectionError] = useState(false);
   const [version, setVersion] = useState(0);
@@ -39,6 +52,17 @@ export function App() {
     window.addEventListener('focus', bump);
     return () => window.removeEventListener('focus', bump);
   }, [bump]);
+
+  // Selecting a tab records it in the URL; back/forward replay it.
+  const select = useCallback((next: TabId) => {
+    window.history.pushState(null, '', `/${next}`);
+    setTab(next);
+  }, []);
+  useEffect(() => {
+    const onPopState = () => setTab(current => tabFromLocation() ?? current);
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,7 +103,7 @@ export function App() {
         </div>
       </header>
       {config && shown && (
-        <TabBar active={shown} visible={tabs} onChange={setTab} />
+        <TabBar active={shown} visible={tabs} onChange={select} />
       )}
       <main className="mx-auto max-w-6xl px-6 py-6">
         {connectionError && (
@@ -95,9 +119,10 @@ export function App() {
             {shown === 'commercial-bank' && (
               <CommercialBankScreen version={version} config={config} />
             )}
-            {shown === 'user' && (
+            {shown === 'people' && (
               <UserScreen version={version} config={config} />
             )}
+            {shown === 'interbank-api' && <InterbankScreen version={version} />}
             {shown === 'database' && (
               <DatabaseScreen version={version} config={config} />
             )}

@@ -68,7 +68,8 @@ export function TransferReservesDialog({
           move — in the real world, reserves move only to settle payments.
           <span className="mt-1.5 block">
             Expect both banks&apos; balance sheets to stop balancing: one bank
-            gained money, the other lost it, and neither&apos;s books say why.
+            gained money, the other lost it, and neither bank&apos;s records say
+            why.
           </span>
           <span className="mt-1.5 block">
             Transfer the same amount back to fix them.
