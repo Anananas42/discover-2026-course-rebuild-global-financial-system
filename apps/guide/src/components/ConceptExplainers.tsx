@@ -162,13 +162,13 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
     body: (
       <>
         <p>
-          The financial system starts almost empty: the Central Bank tab, and
-          three raw views — Interbank API, Database, and Log. Every operation
-          you implement adds its button.{' '}
+          The financial system starts almost empty: the Central Bank and
+          Commercial Bank tabs, and two raw views — Database and Log. Every
+          operation you implement adds its button.{' '}
           <b>
-            The "License a new commercial bank" button appears on the Central
-            Bank tab — and the Commercial Bank tab with it — as soon as you
-            start writing this task's code.
+            Each button appears at the start of its task — so this task's
+            "License a new commercial bank" is already waiting on the Central
+            Bank tab.
           </b>
         </p>
         <p>
@@ -176,19 +176,8 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
           <FinancialSystemLink path="/database">
             Database tab
           </FinancialSystemLink>{' '}
-          is your map. It shows every institution's database in the country,
-          live — after each click, look there for what changed. This task's code
-          writes two new rows under Central bank — the bank in the register, its
-          reserve account — and a whole section appears on its own: the bank's
-          database, brought online by the bank's own systems.
-        </p>
-        <p>
-          The same tab opens with the Database API: your institution's database
-          handle — <Code>centralBankDb</Code> here — carrying the prebuilt
-          repositories from the briefing, one per table, that your code writes
-          those tables through. Everything you need is right there — click a
-          repository's name to open its file in VS Code, or click a method to
-          copy a ready-to-paste call.
+          is your reference for the code you write: which data lives in which
+          table, and the repository methods that read and write it.
         </p>
       </>
     ),

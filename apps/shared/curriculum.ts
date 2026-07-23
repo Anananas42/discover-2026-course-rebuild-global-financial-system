@@ -8,8 +8,8 @@
 // lending creates it.
 //
 // Who reads this: the financial system reveals each operation's UI once
-// its task's stub is replaced (task-status.ts detects that); the guide
-// groups tasks under stages. Task titles live in the markers themselves
+// the task before it passes or its own stub is replaced
+// (unlocked-tasks.ts); the guide groups tasks under stages. Task titles live in the markers themselves
 // (`// TASK <id>: <title>`), never here — one source of truth each way.
 // curriculum.test.ts locks this list against the actual markers, so the
 // two cannot drift apart.
@@ -182,10 +182,10 @@ export const CURRICULUM: CurriculumStage[] = [
         story:
           'As the central bank, I license a commercial bank into the rebuilt financial system.',
         // The first real task spells its story out: one business
-        // requirement per bullet — each a row findable on the Database
-        // tab. The bank's own side (its database, its own account) is
-        // deliberately absent: banks run their own systems, and prebuilt
-        // code brings them online when the license lands.
+        // requirement per bullet — each visible on the screens the
+        // steps walk. The bank's own side (its database, its own
+        // account) is deliberately absent: banks run their own systems,
+        // and prebuilt code brings them online when the license lands.
         requirements: {
           intro: 'Licensing a commercial bank consists of the following steps:',
           items: [
@@ -196,8 +196,8 @@ export const CURRICULUM: CurriculumStage[] = [
         steps: [
           'In the financial system, open the [Central Bank tab](fs:/central-bank) and click "License a new commercial bank".',
           "Name your country's first bank.",
-          'In the [Database tab](fs:/database), you can now see the new bank in the commercial_banks table and its reserve account in the accounts table, both under Central bank.',
-          "There is also a whole section named after your bank: the bank's own database, brought online by the bank's own systems the moment your license landed — your code never touches it.",
+          "The bank's reserve account appears on the central bank's balance sheet, at zero.",
+          "On the [Commercial Bank tab](fs:/commercial-bank), the new bank is there with its own account. The bank's own systems came online the moment your license landed.",
         ],
       },
     ],
@@ -216,7 +216,7 @@ export const CURRICULUM: CurriculumStage[] = [
         story:
           'As a commercial bank, I receive a notice from the central bank — it charged me interest, paid me, or forgave my debt — and I record the change on my own account, in my own database.',
         steps: [
-          "This is the receiving half of everything the central bank does to a bank: nobody can write another institution's database, so the central bank sends a notice and the bank records its own side. The next tasks build the central bank's side — each ends by sending exactly this notice.",
+          "Whatever the central bank does to a bank — charging interest, paying, forgiving — is true the moment the central bank's records say so. The notice is how the bank finds out; recording its own side is how the bank's database catches up with that truth. The next tasks build the central bank's side — each ends by sending exactly this notice.",
           'On the [Commercial Bank tab](fs:/commercial-bank), use "Receive a central bank notice" in the dashed Debug box and watch the bank\'s own account move by the signed amount.',
           'Watch the notice itself cross the wire on the [Interbank API tab](fs:/interbank-api).',
           "The sheet stops balancing: the bank recorded news that nothing at the central bank backs — real notices arrive only from the central bank's real operations.",

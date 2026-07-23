@@ -21,6 +21,7 @@ import { CURRICULUM, taskById } from '../shared/curriculum.ts';
 import { createJsonServer, readBody, sendJson } from '../shared/http.ts';
 import { PORTS } from '../shared/ports.ts';
 import { isLiveStub } from '../shared/task-status.ts';
+import { RESULTS_FILE_NAME } from '../shared/unlocked-tasks.ts';
 import type {
   FileLink,
   GuideState,
@@ -69,8 +70,9 @@ interface VitestReport {
 }
 
 // Last test run. Persisted so results survive watch-mode restarts and
-// `pnpm start` runs.
-const RESULTS_FILE = path.join(ROOT, '.test-results.json');
+// `pnpm start` runs — and read by the financial system: a previous
+// task's pass is half of the unlock rule (unlocked-tasks.ts).
+const RESULTS_FILE = path.join(ROOT, RESULTS_FILE_NAME);
 let lastRun: TestRun | null = null;
 if (existsSync(RESULTS_FILE)) {
   try {

@@ -109,6 +109,9 @@ interface TaskListProps {
   /** The hero's CTA is the initialize button right now — relayed to the
    * bridge card so its ride-up button echoes the glow. */
   initializePending?: boolean;
+  /** The financial system is initialized — the bridge card's story is
+   * over, so task 1.1 drops it. */
+  initialized?: boolean;
 }
 
 export function TaskList({
@@ -119,6 +122,7 @@ export function TaskList({
   actions,
   focusRequest,
   initializePending,
+  initialized,
 }: TaskListProps) {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -393,6 +397,7 @@ export function TaskList({
                           : undefined
                       }
                       initializePending={initializePending}
+                      initialized={initialized}
                       onTestsRan={onTestsRan}
                     />
                   </div>

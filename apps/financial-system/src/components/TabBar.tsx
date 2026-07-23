@@ -1,8 +1,9 @@
 // The workbench's tab bar: three persona screens — who you are acting as
-// — and, set apart on the right, the two tool surfaces that no real
-// stakeholder has: the raw database and the call log. Which tabs exist
-// follows the curriculum: a persona appears once any of its operations
-// is implemented (see gating.ts) — the caller passes the visible set.
+// — and, set apart on the right, the tool surfaces that no real
+// stakeholder has: the interbank wire, the raw database, and the call
+// log. Which tabs exist follows the curriculum: a gated tab appears
+// once any of its tasks is unlocked (see gating.ts) — the caller
+// passes the visible set.
 
 import {
   ArrowLeftRight,

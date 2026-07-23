@@ -1,10 +1,10 @@
-// Which tasks has the student implemented? Scans the TASK regions in
+// Which tasks has the student started? Scans the TASK regions in
 // packages/ and reports, per task id, whether the region still contains
 // its generated stub — `throw new NotImplementedError('<id>')`, the same
 // contract the generator writes and the guide reads (DESIGN.md: course
-// machinery). The financial system uses this to reveal each operation's
-// UI once its task is implemented; in the reference repo no stubs exist,
-// so everything reads as implemented.
+// machinery). Starting a task is half of the unlock rule the financial
+// system reveals UI by (unlocked-tasks.ts); in the reference repo no
+// stubs exist, so everything reads as started.
 //
 // Node-only (filesystem access) — imported by servers, never by browser
 // code; the browser sees the result over the API.

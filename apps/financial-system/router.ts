@@ -34,7 +34,7 @@ import { ibanFor } from '@banks/commercial-bank/iban.ts';
 import { connect } from '@banks/db/database.ts';
 
 import { readCourseConfig } from '../shared/course-config.ts';
-import { scanTaskStatus } from '../shared/task-status.ts';
+import { unlockedTasks } from '../shared/unlocked-tasks.ts';
 import { dbApiReference } from './db-api-reference.ts';
 import { runEffect } from './effect-runner.ts';
 import { classifyOutcome } from './error-outcome.ts';
@@ -196,13 +196,13 @@ await captureBalancedState();
 
 export const appRouter = t.router({
   /** The country identity — set in the guide, read from course.json —
-   *  plus the current rates and the implemented-task map. */
+   *  plus the current rates and the task unlock map. */
   config: procedure.query(async () => {
     const course = readCourseConfig(REPO_ROOT);
     const [policyRate, reserveRatio, tasks] = await Promise.all([
       runEffect(centralBank.policyRate()),
       runEffect(centralBank.reserveRatio()),
-      scanTaskStatus(REPO_ROOT),
+      unlockedTasks(REPO_ROOT),
     ]);
     return {
       country: course.country,
@@ -213,7 +213,8 @@ export const appRouter = t.router({
       // travels with its balance sheet, not here.
       policyRate: policyRate.toString(),
       reserveRatio: reserveRatio.toString(),
-      /** Task id → implemented; the workbench reveals UI per task. */
+      /** Task id → unlocked; the workbench reveals a task's UI once
+       *  the task before it passes (unlocked-tasks.ts). */
       tasks,
     };
   }),

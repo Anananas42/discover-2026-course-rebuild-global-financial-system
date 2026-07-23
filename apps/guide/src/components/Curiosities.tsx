@@ -5,6 +5,8 @@ import type { ReactNode } from 'react';
 import { Button } from '@banks/shared/browser/Button.tsx';
 import { TASK } from '@banks/shared/curriculum.ts';
 
+import { Cite } from './Citations.tsx';
+
 // The curiosities: real-world consequences of what a task's code just
 // made true — optional depth behind a disclosure, never needed to finish
 // the task. Each card follows the concept-explainer idiom (mark-as-read,
@@ -18,7 +20,9 @@ type CuriosityId =
   | 'ledgersFirst'
   | 'moneyRole'
   | 'cashFromLedger'
+  | 'recordsAsAlarm'
   | 'loanPrints'
+  | 'interestUpfront'
   | 'systemStretches'
   | 'rateSteering'
   | 'reserveVanishing'
@@ -35,7 +39,8 @@ type CuriosityId =
 export const CURIOSITIES_BY_TASK: Record<string, CuriosityId[]> = {
   [TASK.openBank]: ['ledgersFirst'],
   [TASK.becomeClient]: ['cashFromLedger'],
-  [TASK.lendToBank]: ['loanPrints'],
+  [TASK.recordCentralBankNotice]: ['recordsAsAlarm'],
+  [TASK.lendToBank]: ['loanPrints', 'interestUpfront'],
   // Money-as-a-role sits where repaid money first stops existing: the
   // frame that makes destruction unmysterious.
   [TASK.receiveRepayment]: ['moneyRole'],
@@ -111,8 +116,10 @@ const CURIOSITIES: Record<CuriosityId, { title: string; body: ReactNode }> = {
         </p>
         <p>
           The ledger came first. The oldest writing we have includes
-          Mesopotamian clay tablets recording who owes whom — thousands of years
-          before the first coin was struck.
+          Mesopotamian clay tablets recording who owes whom
+          <Cite id="firstWriting" /> — thousands of years before the first coin
+          was struck.
+          <Cite id="firstCoins" />
         </p>
         <p>
           Ever since, the two have run side by side: parallel worlds of money.
@@ -150,7 +157,8 @@ const CURIOSITIES: Record<CuriosityId, { title: string; body: ReactNode }> = {
         </p>
         <p>
           Circumstances decide what gets the job. In prisoner-of-war camps,
-          cigarettes became money. When a currency collapses, people flee it and
+          cigarettes became money.
+          <Cite id="powCamp" /> When a currency collapses, people flee it and
           other things start doing money's job again — badly.
         </p>
         <p>
@@ -176,17 +184,59 @@ const CURIOSITIES: Record<CuriosityId, { title: string; body: ReactNode }> = {
           It feels like account money must be backed by "real" cash in a vault
           somewhere. It is the other way around: banknotes enter the world when
           a commercial bank buys them from the central bank, paid by lowering
-          its reserve entry. Cash is a ledger entry, printed.
+          its reserve entry.
+          <Cite id="banknotesFromReserves" /> Cash is a ledger entry, printed.
         </p>
         <p>
           A banknote is that entry made portable — payable to whoever holds the
           paper, no name attached. British notes still say "I promise to pay the
           bearer on demand".
+          <Cite id="promiseToPay" />
         </p>
         <p>
           Withdrawing repeats this one level down: your balance shrinks and the
           same value crosses into your hand as a thing. The world of cash is
           supplied entirely from the world of entries.
+        </p>
+      </>
+    ),
+  },
+  recordsAsAlarm: {
+    title: 'Why the bank writes down what it could ask',
+    body: (
+      <>
+        <p>
+          Strictly speaking, this bank could keep almost no records. Everything
+          it owns and owes at the central bank can be asked at any moment, and
+          from those answers it could calculate its position fresh before every
+          operation. Nothing stored, nothing ever stale.
+        </p>
+        <p>
+          The first problem: a calculated number has no story. It can say your
+          money shrank by 50; it cannot say you were charged interest, on what,
+          at which rate. A bank must answer those questions — for itself, for
+          its auditors, for the day it believes the central bank got a charge
+          wrong. Arithmetic will not tell you what happened; someone must. That
+          is the notice.
+        </p>
+        <p>
+          The second problem is stranger: a number that can never be wrong can
+          never warn you. So the bank does more than file the notice away — it
+          writes the change into its own account, in its own database. A number
+          you keep yourself can disagree with the central bank's, and that is
+          its real job: lose one notice, or record one twice, and the balance
+          sheet stops balancing. You set that alarm off on purpose in this
+          task's walkthrough: the debug notice made the commercial bank record a
+          change that nothing at the central bank backs, and the sheet caught
+          the disagreement immediately.
+        </p>
+        <p>
+          Real banks add one more layer: their own copy of the reserve balance,
+          checked against the central bank every day, because their line to the
+          central bank can go down.
+          <Cite id="intradayLiquidity" /> Here the line never drops, so this
+          world keeps the rule at its smallest — ask what you can ask, write
+          down what you were told, and let the balance sheet be the alarm.
         </p>
       </>
     ),
@@ -213,6 +263,29 @@ const CURIOSITIES: Record<CuriosityId, { title: string; body: ReactNode }> = {
       </>
     ),
   },
+  interestUpfront: {
+    title: 'Real interest is the price of time',
+    body: (
+      <>
+        <p>
+          You lent 1000 and the bank owed 1050 in the same instant. In this
+          world, interest is the price of a loan, charged once, the moment the
+          loan is made.
+        </p>
+        <p>
+          Real interest is the price of time. It grows for as long as the debt
+          is outstanding and lands as a charge at the end of each day, month, or
+          year. Repay early and you pay less; hold the debt longer and you pay
+          more.
+        </p>
+        <p>
+          This world has no clock, so a loan's whole price arrives up front. The
+          rest is unchanged: interest is still the lender's income and the
+          borrower's expense, and every balance can still be walked by hand.
+        </p>
+      </>
+    ),
+  },
   systemStretches: {
     title: 'The rescue always sits one level up',
     body: (
@@ -225,9 +298,10 @@ const CURIOSITIES: Record<CuriosityId, { title: string; body: ReactNode }> = {
         <p>
           The system handles failure this way at every level. A client's failed
           loan is absorbed by their bank's own money. A failed bank can be
-          absorbed one level up: in 2008, central banks and governments rescued
-          failing banks with freshly created money rather than let the losses
-          fall through to everyone's accounts.
+          absorbed one level up: in 2008, governments and central banks rescued
+          failing banks — the central banks with freshly created money — rather
+          than let the losses fall through to everyone's accounts.
+          <Cite id="rescues2008" />
         </p>
         <p>
           The ladder can end this way because of what sits at the top.
@@ -236,6 +310,7 @@ const CURIOSITIES: Record<CuriosityId, { title: string; body: ReactNode }> = {
           central bank's own account, no such rule exists. Nothing is printed to
           cover its losses — the negative number simply sits in its database,
           and the central bank carries on.
+          <Cite id="negativeEquity" />
         </p>
         <p>
           Rescues are meant to be rare, and expensive for the rescued. The
@@ -260,29 +335,36 @@ const CURIOSITIES: Record<CuriosityId, { title: string; body: ReactNode }> = {
           near 20% to break an inflation: borrowing became so expensive that
           spending collapsed, and the inflation died with it, at the price of a
           recession.
+          <Cite id="volckerRates" />
         </p>
         <p>
-          And the dial can lose. Today's Russia holds its rate near that same
-          20%, yet inflation stays high: the state pours war spending into the
-          economy faster than expensive borrowing can cool it. The brake works
-          on those who must borrow. A state at war spends anyway.
+          And the dial can lose. In 2024, wartime Russia pushed its rate past
+          that same 20%, yet inflation stayed high: the state poured war
+          spending into the economy faster than expensive borrowing could cool
+          it.
+          <Cite id="russiaKeyRate" /> The brake works on those who must borrow.
+          A state at war spends anyway.
         </p>
         <p>
           The dial also turns further than intuition suggests. After 2008, with
           spending frozen and prices threatening to fall, Japan and the euro
           area pushed below zero: banks were charged for keeping money parked,
           to push them to lend it instead.
+          <Cite id="ecbNegativeRates" />
+          <Cite id="bojNegativeRate" />
         </p>
         <p>
           It got stranger. In 2019 a Danish bank offered ten-year mortgages at
-          -0.5% a year: borrow 100, and a year later you owe 99.5. The bank was
-          not the one losing — in Denmark, mortgage money comes from investors,
-          mostly pension funds; the bank passes the borrower's repayments
-          through to them and lives on a fixed fee from the borrower. The
-          missing 0.5 came out of the pension funds. They accepted the loss
-          because their money had nowhere cheaper to sit: parking it at the
-          Danish central bank cost 0.75% a year. Losing half a percent was the
-          good deal.
+          -0.5% a year: borrow 100, and a year later you owe 99.5.
+          <Cite id="jyskeMortgage" /> The bank was not the one losing — in
+          Denmark, mortgage money comes from investors, pension funds among the
+          biggest; the bank passes the borrower's repayments through to them and
+          lives on a fixed fee from the borrower.
+          <Cite id="danishMortgageModel" /> The missing 0.5 came out of those
+          investors. They accepted the loss because their money had nowhere
+          cheaper to sit: parking it at the Danish central bank cost up to 0.75%
+          a year.
+          <Cite id="danishCdRate" /> Losing half a percent was the good deal.
         </p>
         <p>
           Yet there is a floor, and it is made of paper. Banknotes pay exactly
@@ -300,13 +382,16 @@ const CURIOSITIES: Record<CuriosityId, { title: string; body: ReactNode }> = {
       <>
         <p>
           The rule you just implemented is on its way out of the real world. The
-          United States set its reserve requirement to zero in March 2020;
-          Britain, Canada and Australia run without one entirely.
+          United States set its reserve requirement to zero in March 2020
+          <Cite id="fedZeroReserves" />; Britain, Canada and Australia run
+          without one entirely.
+          <Cite id="reserveRatios" />
         </p>
         <p>
-          Czechia still has one — banks must keep 2% of client deposits at the
-          central bank — but it is a leftover, not the brake. What actually
-          limits Czech banks is a set of other dials.
+          Czechia still has one — banks must keep 4% of client deposits at the
+          central bank
+          <Cite id="cnbReserves" /> — but it is a leftover, not the brake. What
+          actually limits Czech banks is a set of other dials.
         </p>
         <p>
           The main one is capital — a different rule from the one you just
@@ -315,13 +400,14 @@ const CURIOSITIES: Record<CuriosityId, { title: string; body: ReactNode }> = {
         <ul className="list-disc space-y-1 pl-5">
           <li>
             the reserve requirement: for every 100 CZK of client deposits, the
-            commercial bank must keep 2 CZK as reserves at the central bank (the
-            Czech rate: 2%)
+            commercial bank must keep 4 CZK as reserves at the central bank (the
+            Czech rate: 4%)
           </li>
           <li>
             the capital rule: for every 100 CZK the commercial bank has lent,
-            roughly 8 CZK must be its own equity (the international floor: 8%) —
-            the same equity you watched absorb a write-off
+            roughly 8 CZK must be its own equity (the international floor: 8%)
+            <Cite id="baselCapital" /> — the same equity you watched absorb a
+            write-off
           </li>
         </ul>
         <p>
@@ -337,6 +423,7 @@ const CURIOSITIES: Record<CuriosityId, { title: string; body: ReactNode }> = {
           deposits protected. In this course an insolvent bank sits at negative
           equity, honestly reported; in reality it would be taken over while its
           equity was still positive.
+          <Cite id="promptCorrective" />
         </p>
         <p>
           Equity cannot be borrowed: borrowing adds as much debt as it adds
@@ -355,11 +442,13 @@ const CURIOSITIES: Record<CuriosityId, { title: string; body: ReactNode }> = {
           runs hot it demands more own money behind every loan, and in a crisis
           it lowers the demand, so banks absorb the losses and keep lending
           instead of freezing.
+          <Cite id="ccyb" />
         </p>
         <p>
           Other dials sit on the loans themselves: a Czech mortgage may cover at
           most about 80% of the home's price, so when prices fall, the loss eats
           the buyer's share before it reaches the bank.
+          <Cite id="cnbLtv" />
         </p>
         <p>
           This course keeps the requirement because it makes a lending limit
@@ -389,6 +478,7 @@ const CURIOSITIES: Record<CuriosityId, { title: string; body: ReactNode }> = {
         <p>
           When Greece limited money leaving its banks in 2015, this was the
           mechanism that kept everyday payments inside the country running.
+          <Cite id="greeceCards" />
         </p>
       </>
     ),
@@ -421,6 +511,7 @@ const CURIOSITIES: Record<CuriosityId, { title: string; body: ReactNode }> = {
           New York, where the morning had barely started. Its counterparties
           were left holding half-finished payments, and "Herstatt risk" has
           meant settlement risk ever since.
+          <Cite id="herstatt" />
         </p>
         <p>
           Your payments table is the first half of how real systems handle this:
@@ -465,7 +556,8 @@ const CURIOSITIES: Record<CuriosityId, { title: string; body: ReactNode }> = {
           I the winners demanded enormous payments from Germany while refusing
           to buy German goods — collecting without spending back. The economist
           John Maynard Keynes wrote in 1919 that such a debt could never be
-          paid, and that forcing it would end in catastrophe. He was right.
+          paid, and that forcing it would end in catastrophe.
+          <Cite id="keynes" /> He was right.
         </p>
         <p>
           This is also one reason the central bank interest rate can go below
@@ -481,8 +573,11 @@ const CURIOSITIES: Record<CuriosityId, { title: string; body: ReactNode }> = {
       <>
         <p>
           The two digits after the country code are a checksum computed from the
-          whole number. Mistype a single character and the IBAN fails the check
-          — the payment is refused instead of sent to a stranger.
+          whole number.
+          <Cite id="ibanRegistry" /> Mistype a single character and the IBAN
+          fails the check — the payment is refused instead of sent to a
+          stranger.
+          <Cite id="mod97" />
         </p>
         <p>
           That is why a bank can reject a wrong IBAN instantly, before any money
@@ -507,8 +602,9 @@ const CURIOSITIES: Record<CuriosityId, { title: string; body: ReactNode }> = {
         </p>
         <p>
           In 2023, clients of Silicon Valley Bank tried to withdraw 42 billion
-          dollars in a single day, by phone, no queues anywhere. The mechanics
-          you just built are the same ones that let a bank die in an afternoon.
+          dollars in a single day, by phone, no queues anywhere.
+          <Cite id="svbOrder" /> The mechanics you just built are the same ones
+          that let a bank die in an afternoon.
         </p>
       </>
     ),
@@ -531,8 +627,9 @@ const CURIOSITIES: Record<CuriosityId, { title: string; body: ReactNode }> = {
           In 2014 the Bank of England published a paper, "Money creation in the
           modern economy", saying it plainly: commercial banks making loans
           create most of the money in existence, and the picture of banks
-          lending out savings is wrong. What made the paper famous is who said
-          it — the institution at the center of the system, correcting the
+          lending out savings is wrong.
+          <Cite id="moneyCreation" /> What made the paper famous is who said it
+          — the institution at the center of the system, correcting the
           textbooks in public. Many textbooks still teach the old picture.
         </p>
       </>
@@ -566,8 +663,8 @@ const CURIOSITIES: Record<CuriosityId, { title: string; body: ReactNode }> = {
         <p>
           Nearly all money is like this. In modern economies only a few percent
           of money is physical cash; the rest is bank deposits, born from loans
-          — every mortgage payment in the world quietly shrinks the money
-          supply.
+          <Cite id="moneyCreation" /> — every mortgage payment in the world
+          quietly shrinks the money supply.
         </p>
         <p>
           If everyone somehow repaid every debt at once, most money would simply
@@ -581,6 +678,7 @@ const CURIOSITIES: Record<CuriosityId, { title: string; body: ReactNode }> = {
           balances died with it. In the Great Depression, thousands of American
           commercial banks failed this way, and roughly a third of the country's
           money vanished in four years.
+          <Cite id="greatContraction" />
         </p>
         <p>
           There is also a third ending: the central bank bears the loss, and the

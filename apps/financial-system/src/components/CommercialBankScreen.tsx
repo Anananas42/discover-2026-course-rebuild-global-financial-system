@@ -15,7 +15,7 @@ import { TASK } from '@banks/shared/curriculum.ts';
 import { ActionGroup } from './ActionGroup.tsx';
 import { concernsAccount } from '../account-activity.ts';
 import { api } from '../api.ts';
-import { anyDone, isDone } from '../gating.ts';
+import { anyUnlocked, isUnlocked } from '../gating.ts';
 import { getCallLog, isUnread, subscribeCallLog } from '../call-log.ts';
 import { formatIban, formatMoney } from '../format.ts';
 import { Amount } from './Amount.tsx';
@@ -62,7 +62,7 @@ interface Config {
   country: string;
   currency: string;
   decimals: number;
-  /** Task id → implemented; operations reveal per task (gating.ts). */
+  /** Task id → unlocked; operations reveal per task (gating.ts). */
   tasks: Record<string, boolean>;
 }
 
@@ -247,7 +247,7 @@ export function CommercialBankScreen({
           {/* The bank's gauge: its price dial, display and control in one.
               Prebuilt, like the reserve-requirement dial — it appears with
               client lending, the operation it prices. */}
-          {isDone(config.tasks, TASK.lendToClient) && selected && books && (
+          {isUnlocked(config.tasks, TASK.lendToClient) && selected && books && (
             <SetInterestRateDialog
               bank={selected}
               interestRate={books.interestRate}
@@ -257,7 +257,7 @@ export function CommercialBankScreen({
       </div>
 
       <div className="mb-5 flex flex-wrap gap-3">
-        {isDone(config.tasks, TASK.payFromBank) && (
+        {isUnlocked(config.tasks, TASK.payFromBank) && (
           <ActionGroup
             label="Payments"
             hint={
@@ -278,7 +278,7 @@ export function CommercialBankScreen({
             <PayFromBankDialog bank={selected} currency={config.currency} />
           </ActionGroup>
         )}
-        {anyDone(config.tasks, [
+        {anyUnlocked(config.tasks, [
           TASK.lendToClient,
           TASK.receiveRepayment,
           TASK.writeOffLoan,
@@ -302,7 +302,7 @@ export function CommercialBankScreen({
               </>
             }
           >
-            {isDone(config.tasks, TASK.lendToClient) && (
+            {isUnlocked(config.tasks, TASK.lendToClient) && (
               <LendToClientDialog
                 bank={selected}
                 accounts={books?.accounts ?? []}
@@ -310,13 +310,13 @@ export function CommercialBankScreen({
                 interestRate={books?.interestRate}
               />
             )}
-            {isDone(config.tasks, TASK.receiveRepayment) && (
+            {isUnlocked(config.tasks, TASK.receiveRepayment) && (
               <RepayCentralBankDialog
                 bank={selected}
                 currency={config.currency}
               />
             )}
-            {isDone(config.tasks, TASK.writeOffLoan) && (
+            {isUnlocked(config.tasks, TASK.writeOffLoan) && (
               <WriteOffLoanDialog
                 bank={selected}
                 accounts={books?.accounts ?? []}
@@ -326,7 +326,7 @@ export function CommercialBankScreen({
             )}
           </ActionGroup>
         )}
-        {anyDone(config.tasks, [
+        {anyUnlocked(config.tasks, [
           TASK.recordCentralBankNotice,
           TASK.receivePayment,
         ]) &&
@@ -347,13 +347,13 @@ export function CommercialBankScreen({
                 </>
               }
             >
-              {isDone(config.tasks, TASK.recordCentralBankNotice) && (
+              {isUnlocked(config.tasks, TASK.recordCentralBankNotice) && (
                 <ReceiveNoticeDialog
                   bank={selected}
                   currency={config.currency}
                 />
               )}
-              {isDone(config.tasks, TASK.receivePayment) && (
+              {isUnlocked(config.tasks, TASK.receivePayment) && (
                 <ReceivePaymentDialog
                   bank={selected}
                   banks={banks}

@@ -175,7 +175,9 @@ export class CentralBank implements CentralBankApi {
    * Licenses a new bank: registers it and opens its reserve account here
    * at the central bank (the task, recordNewBank), then the license
    * lands at the bank and its own systems come online — its database,
-   * with its own account in it (the bank's side, prebuilt).
+   * with its own account in it (the bank's side, prebuilt). Tidies the
+   * name on the way in: spaces around it are ignored, a blank one is
+   * refused.
    */
   registerBank(input: {
     name: string;
@@ -185,8 +187,17 @@ export class CentralBank implements CentralBankApi {
   > {
     const commercialBanks = this.connectedCommercialBanks();
     const recordNewBank = this.recordNewBank.bind(this);
+    const name = input.name.trim();
     return Effect.gen(function* () {
-      const bank = yield* recordNewBank(input);
+      if (name === '') {
+        return yield* Effect.fail(
+          new InvalidBankNameError({
+            name: input.name,
+            reason: 'must not be empty',
+          })
+        );
+      }
+      const bank = yield* recordNewBank({ name });
       yield* commercialBanks.connectBank({ bankId: bank.id, name: bank.name });
       return bank;
     });
@@ -195,7 +206,9 @@ export class CentralBank implements CentralBankApi {
   /**
    * The central bank's own records of a licensing: the bank's row in the
    * register and its reserve account. Only this institution's database —
-   * what happens at the bank itself is the bank's job.
+   * what happens at the bank itself is the bank's job. The name arrives
+   * already tidied: no spaces around it, never blank (registerBank's
+   * job).
    */
   private recordNewBank(input: {
     name: string;

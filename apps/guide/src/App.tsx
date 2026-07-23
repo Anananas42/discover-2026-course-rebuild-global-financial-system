@@ -7,6 +7,7 @@ import { useTheme } from '@banks/shared/browser/use-theme.ts';
 
 import type { GuideState } from '../guide-contract.ts';
 import { fetchState } from './api.ts';
+import { CitationsSection } from './components/Citations.tsx';
 import { ErrorAlert } from './components/ErrorAlert.tsx';
 import {
   courseConfigured,
@@ -149,12 +150,21 @@ export function App() {
                 initializePending={
                   briefingDone && !courseConfigured(state.course)
                 }
+                initialized={courseConfigured(state.course)}
                 onTestsRan={refresh}
                 actions={
                   <SubmitControls course={state.course} onSubmitted={refresh} />
                 }
               />
               <VscodeTips />
+              <CitationsSection
+                onFocusTask={taskId =>
+                  setFocusRequest(prev => ({
+                    id: taskId,
+                    seq: (prev?.seq ?? 0) + 1,
+                  }))
+                }
+              />
             </>
           )}
         </div>

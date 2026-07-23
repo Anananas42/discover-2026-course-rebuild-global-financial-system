@@ -24,7 +24,7 @@ import { TASK } from '@banks/shared/curriculum.ts';
 import { ActionGroup } from './ActionGroup.tsx';
 import { concernsAccount } from '../account-activity.ts';
 import { api } from '../api.ts';
-import { anyDone, isDone } from '../gating.ts';
+import { anyUnlocked, isUnlocked } from '../gating.ts';
 import { getCallLog, isUnread, subscribeCallLog } from '../call-log.ts';
 import { formatIban, formatMoney } from '../format.ts';
 import { LogEntries } from './LogEntries.tsx';
@@ -58,7 +58,7 @@ interface Config {
   country: string;
   currency: string;
   decimals: number;
-  /** Task id → implemented; operations reveal per task (gating.ts). */
+  /** Task id → unlocked; operations reveal per task (gating.ts). */
   tasks: Record<string, boolean>;
 }
 
@@ -178,7 +178,7 @@ export function UserScreen({
                 ))}
               </SelectContent>
             </Select>
-            {isDone(config.tasks, TASK.renamePerson) && (
+            {isUnlocked(config.tasks, TASK.renamePerson) && (
               <RenamePersonDialog person={person} />
             )}
           </div>
@@ -188,7 +188,7 @@ export function UserScreen({
       </div>
 
       <div className="mb-5 flex flex-wrap gap-3">
-        {anyDone(config.tasks, [TASK.becomeClient, TASK.openAccount]) && (
+        {anyUnlocked(config.tasks, [TASK.becomeClient, TASK.openAccount]) && (
           <ActionGroup
             label="Identity"
             hint={
@@ -202,18 +202,18 @@ export function UserScreen({
               </>
             }
           >
-            {isDone(config.tasks, TASK.becomeClient) && (
+            {isUnlocked(config.tasks, TASK.becomeClient) && (
               <BecomeClientDialog
                 banks={banks}
                 onCreated={({ personId }) => setSelectedId(personId)}
               />
             )}
-            {isDone(config.tasks, TASK.openAccount) && (
+            {isUnlocked(config.tasks, TASK.openAccount) && (
               <OpenAccountDialog person={person} banks={banks} />
             )}
           </ActionGroup>
         )}
-        {isDone(config.tasks, TASK.sendMoney) && (
+        {isUnlocked(config.tasks, TASK.sendMoney) && (
           <ActionGroup
             label="Payments"
             hint={
@@ -239,7 +239,7 @@ export function UserScreen({
             />
           </ActionGroup>
         )}
-        {isDone(config.tasks, TASK.repayLoan) && (
+        {isUnlocked(config.tasks, TASK.repayLoan) && (
           <ActionGroup
             label="Credit (money creation)"
             hint="A repayment is a loan running in reverse: the account balance goes down and the debt goes down with it — the deposit the loan created is destroyed."

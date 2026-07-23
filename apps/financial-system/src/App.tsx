@@ -81,7 +81,7 @@ export function App() {
     };
   }, [version]);
 
-  // Which tabs exist follows the implemented tasks; if the remembered
+  // Which tabs exist follows the unlocked tasks; if the remembered
   // tab is not among them (fresh database, early curriculum), fall back
   // to the first visible one.
   const tabs = config ? visibleTabs(config.tasks) : [];

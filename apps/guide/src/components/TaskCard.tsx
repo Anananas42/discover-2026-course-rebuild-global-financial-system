@@ -80,6 +80,7 @@ export function TaskCard({
   next,
   focusSeq,
   initializePending,
+  initialized,
   onTestsRan,
 }: {
   task: GuideTask;
@@ -92,6 +93,9 @@ export function TaskCard({
   /** The hero's CTA is "Initialize your financial system" right now —
    * the bridge card's ride-up button echoes its glow. */
   initializePending?: boolean;
+  /** The financial system is initialized — the button the bridge card
+   * explains is gone from the hero, so the card goes with it. */
+  initialized?: boolean;
   onTestsRan: () => void;
 }) {
   const [filesOpen, setFilesOpen] = useState(false);
@@ -209,8 +213,9 @@ export function TaskCard({
 
         {/* The first task after the mission briefing carries the bridge
             card: it explains the initialize button the finished briefing
-            reveals in the hero, and scrolls back up to it. */}
-        {task.id === TASK.openBank && (
+            reveals in the hero, and scrolls back up to it. Initializing
+            replaces that button, so the card leaves with it. */}
+        {task.id === TASK.openBank && !initialized && (
           <div className="mt-3 grid gap-3">
             <InitializeExplainer glow={initializePending ?? false} />
           </div>

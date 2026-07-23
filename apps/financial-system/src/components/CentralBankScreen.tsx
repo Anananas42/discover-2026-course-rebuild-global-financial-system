@@ -5,7 +5,7 @@ import { TASK } from '@banks/shared/curriculum.ts';
 
 import { api } from '../api.ts';
 import { formatMoney } from '../format.ts';
-import { anyDone, isDone } from '../gating.ts';
+import { anyUnlocked, isUnlocked } from '../gating.ts';
 import { ActionGroup } from './ActionGroup.tsx';
 import { Amount } from './Amount.tsx';
 import { DatabaseSection } from './DatabaseSection.tsx';
@@ -42,7 +42,7 @@ interface Config {
   policyRate: string;
   /** The reserve requirement, as a ratio string ('0.10' = 10%). */
   reserveRatio: string;
-  /** Task id → implemented; operations reveal per task (gating.ts). */
+  /** Task id → unlocked; operations reveal per task (gating.ts). */
   tasks: Record<string, boolean>;
 }
 
@@ -113,10 +113,10 @@ export function CentralBankScreen({
             appears with the operation its value prices or limits — the
             reserve dial is prebuilt (the teacher's lever), so it follows
             the client lending it limits. */}
-        {isDone(config.tasks, TASK.setPolicyRate) && (
+        {isUnlocked(config.tasks, TASK.setPolicyRate) && (
           <SetPolicyRateDialog policyRate={config.policyRate} />
         )}
-        {isDone(config.tasks, TASK.lendToClient) && (
+        {isUnlocked(config.tasks, TASK.lendToClient) && (
           <SetReserveRatioDialog reserveRatio={config.reserveRatio} />
         )}
       </div>
@@ -124,7 +124,7 @@ export function CentralBankScreen({
       <div className="mb-5 flex flex-wrap gap-3">
         {/* Licensing is the central bank's authority: the button lives
             here, even though what it creates is a commercial bank. */}
-        {isDone(config.tasks, TASK.openBank) && (
+        {isUnlocked(config.tasks, TASK.openBank) && (
           <ActionGroup
             label="New bank"
             hint={
@@ -142,7 +142,7 @@ export function CentralBankScreen({
             <OpenBankDialog />
           </ActionGroup>
         )}
-        {isDone(config.tasks, TASK.payBank) && (
+        {isUnlocked(config.tasks, TASK.payBank) && (
           <ActionGroup
             label="Payments"
             hint={
@@ -160,7 +160,10 @@ export function CentralBankScreen({
             <PayBankDialog banks={banks} currency={config.currency} />
           </ActionGroup>
         )}
-        {anyDone(config.tasks, [TASK.lendToBank, TASK.writeOffBankDebt]) && (
+        {anyUnlocked(config.tasks, [
+          TASK.lendToBank,
+          TASK.writeOffBankDebt,
+        ]) && (
           <ActionGroup
             label="Credit (money creation)"
             hint={
@@ -176,14 +179,14 @@ export function CentralBankScreen({
               </>
             }
           >
-            {isDone(config.tasks, TASK.lendToBank) && (
+            {isUnlocked(config.tasks, TASK.lendToBank) && (
               <LendToBankDialog
                 banks={banks}
                 currency={config.currency}
                 policyRate={config.policyRate}
               />
             )}
-            {isDone(config.tasks, TASK.writeOffBankDebt) && (
+            {isUnlocked(config.tasks, TASK.writeOffBankDebt) && (
               <WriteOffBankDebtDialog
                 banks={banks}
                 claims={books?.claims ?? []}
@@ -192,7 +195,7 @@ export function CentralBankScreen({
             )}
           </ActionGroup>
         )}
-        {isDone(config.tasks, TASK.transferReserves) && (
+        {isUnlocked(config.tasks, TASK.transferReserves) && (
           <ActionGroup
             debug
             label="Debug"
