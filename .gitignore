@@ -1,0 +1,45 @@
+# dependencies
+node_modules
+
+# output
+out
+dist
+*.tgz
+
+# code coverage
+coverage
+*.lcov
+
+# logs
+logs
+*.log
+
+# dotenv environment variable files
+.env
+.env.*.local
+.env.local
+
+# caches
+.eslintcache
+.cache
+*.tsbuildinfo
+
+# generated student skeleton (regenerate with `pnpm generate-student`)
+student-repo/
+
+# classroom dashboard state, submission archive, report temp file
+apps/dashboard/state.json
+apps/dashboard/submissions/
+.vitest-report.json
+.start.pids
+
+# IntelliJ based IDEs
+.idea
+
+# Finder (macOS) folder config
+.DS_Store
+
+# Claude Code local settings (user-specific overrides)
+.claude/settings.local.json
+.test-results.json
+course.json

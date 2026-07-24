@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Financial System</title>
+    <!-- First-paint theming: mirrors --color-page and the color-scheme
+         rules from shared/theme.css, and applies the shared theme cookie
+         (shared/browser/theme.ts) before first paint, so navigating
+         between the guide and the financial system never flashes white. -->
+    <style>
+      html {
+        color-scheme: light dark;
+        background-color: light-dark(#ffffff, #141414);
+      }
+      html[data-theme='light'] {
+        color-scheme: light;
+      }
+      html[data-theme='dark'] {
+        color-scheme: dark;
+      }
+    </style>
+    <script>
+      const theme = document.cookie.match(/(?:^|; )theme=(light|dark)/)?.[1];
+      if (theme) document.documentElement.dataset.theme = theme;
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

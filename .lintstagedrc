@@ -1,0 +1,4 @@
+{
+  "*.{js,ts,mjs,mts}": "oxlint --deny-warnings --fix",
+  "*.{js,ts,mjs,mts,json,md,yml,yaml}": "prettier --write --cache"
+}

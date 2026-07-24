@@ -1,0 +1,10 @@
+**/node_modules/**/*
+**/dist
+**/build
+**/coverage
+pnpm-lock.yaml
+student-repo/
+
+# Editors
+.idea
+.vscode
