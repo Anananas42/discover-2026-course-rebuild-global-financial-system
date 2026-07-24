@@ -50,8 +50,10 @@ export interface GuideTask {
   /** When this task's scenarios last ran — results can age per task. */
   ranAt: number | null;
   status: TaskStatus;
-  /** Where the work happens: the TASK region, at its marker line. */
-  implement: FileLink;
+  /** Where the work happens: the TASK region, at its marker line —
+   *  null on codeless tasks, whose work happens in the guide and the
+   *  financial system instead. */
+  implement: FileLink | null;
   /** The public test file to satisfy, at this task's describe. */
   tests: FileLink | null;
   /** Sibling sources this task touches — context, not work. */

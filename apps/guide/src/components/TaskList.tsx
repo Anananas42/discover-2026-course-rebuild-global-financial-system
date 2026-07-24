@@ -106,12 +106,6 @@ interface TaskListProps {
   actions?: ReactNode;
   /** The hero's "Next task" press to honor, if any. */
   focusRequest?: FocusRequest | null;
-  /** The hero's CTA is the initialize button right now — relayed to the
-   * bridge card so its ride-up button echoes the glow. */
-  initializePending?: boolean;
-  /** The financial system is initialized — the bridge card's story is
-   * over, so task 1.1 drops it. */
-  initialized?: boolean;
 }
 
 export function TaskList({
@@ -121,8 +115,6 @@ export function TaskList({
   onTestsRan,
   actions,
   focusRequest,
-  initializePending,
-  initialized,
 }: TaskListProps) {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -412,8 +404,6 @@ export function TaskList({
                           ? focusRequest.seq
                           : undefined
                       }
-                      initializePending={initializePending}
-                      initialized={initialized}
                       onTestsRan={onTestsRan}
                     />
                   </div>

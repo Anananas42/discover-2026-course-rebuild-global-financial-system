@@ -11,11 +11,21 @@
 // the task before it passes or its own stub is replaced
 // (unlocked-tasks.ts); the guide groups tasks under stages. Task titles live in the markers themselves
 // (`// TASK <id>: <title>`), never here — one source of truth each way.
+// The exception is codeless tasks (`codeless: true`): with no marker,
+// their title lives on the curriculum entry.
 // curriculum.test.ts locks this list against the actual markers, so the
 // two cannot drift apart.
 
 export interface CurriculumTask {
   id: string;
+  /** Set only on codeless tasks: with no marker to carry the title, it
+   *  lives here. Code tasks keep theirs in the marker. */
+  title?: string;
+  /** A task done entirely in the guide and the financial system — no
+   *  marker, no stub, no tests. Its status comes from what the student
+   *  has actually done (guide server), and it stays out of ALL_TASK_IDS
+   *  so the marker lock and the unlock chain see code tasks only. */
+  codeless?: boolean;
   /** The functionality, as a user story: who does what, and why. */
   story: string;
   /** The story's detail, spelled out: a lead-in line and one business
@@ -64,6 +74,7 @@ export interface CurriculumStage {
 
 /** Task ids by name, for the UI surfaces they unlock. */
 export const TASK = {
+  goLive: '0.8',
   openBank: '1.1',
   recordCentralBankNotice: '2.1',
   lendToBank: '2.2',
@@ -164,6 +175,17 @@ export const CURRICULUM: CurriculumStage[] = [
           'Read the explainer above.',
           'Write both new balances — minus the amount, plus the amount — inside one db.transaction call.',
           'Run the tests: one scenario cuts the power between the two writes and checks that nothing moved.',
+        ],
+      },
+      {
+        id: '0.8',
+        title: 'Report for duty',
+        codeless: true,
+        story:
+          'Bring your country online: initialize your financial system, then deploy your first update to headquarters.',
+        steps: [
+          'Press "Initialize your financial system" at the top of the guide — your name, your country, your currency.',
+          'Press "Deploy updates" — it appears next to "Run tests" once your system exists. Headquarters evaluates every deploy and puts your country on the classroom board.',
         ],
       },
     ],
@@ -465,9 +487,11 @@ export const CURRICULUM: CurriculumStage[] = [
   },
 ];
 
-/** Every task id in curriculum order. */
+/** Every code task id in curriculum order — the ids that carry TASK
+ *  markers. Codeless tasks stay out: the marker lock (curriculum.test)
+ *  and the unlock chain (unlocked-tasks) reason about code only. */
 export const ALL_TASK_IDS: string[] = CURRICULUM.flatMap(s =>
-  s.tasks.map(t => t.id)
+  s.tasks.filter(t => !t.codeless).map(t => t.id)
 );
 
 /** A task's curriculum entry, by id. */

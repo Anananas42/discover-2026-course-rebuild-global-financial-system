@@ -7,7 +7,7 @@
 // reports which scenarios fail. Hidden test code is not disclosed; your own
 // test files are not submitted.
 
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { parseArgs } from 'node:util';
@@ -80,6 +80,15 @@ try {
   console.error(`Could not reach the server (${dashboard}): ${message}`);
   console.error('Check the course server address at the top of the guide.');
   process.exit(1);
+}
+
+// The deploy reached the server — record the first success; the guide's
+// report-for-duty task (0.8) passes on this fact.
+if (!config.deployedAt) {
+  await writeFile(
+    path.join(ROOT, 'course.json'),
+    `${JSON.stringify({ ...config, deployedAt: new Date().toISOString() }, null, 2)}\n`
+  );
 }
 
 const tasks = Object.entries(response.tasks).sort(([a], [b]) =>

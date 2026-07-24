@@ -3,7 +3,8 @@ import { ArrowDown, ExternalLink } from 'lucide-react';
 import type { CourseConfig } from '../../../shared/course-config.ts';
 import type { GuideTask } from '../../guide-contract.ts';
 import weNeedYou from '../assets/we-need-you.png';
-import { courseConfigured, IdentityDialog } from './IdentityDialog.tsx';
+import { courseConfigured } from '../../../shared/course-defaults.ts';
+import { IdentityDialog } from './IdentityDialog.tsx';
 import { ZoomableImage } from './ZoomableImage.tsx';
 
 // The hero CTA's shape, shared by all of its lives. The next-task button

@@ -11,10 +11,6 @@ import {
 import type { CourseConfig } from '../../../shared/course-config.ts';
 import { IdentityForm } from './IdentityForm.tsx';
 
-/** Whether the student has initialized their financial system. */
-export const courseConfigured = (course: CourseConfig) =>
-  Boolean(course.student && course.country && course.currency);
-
 /** The identity dialog, opened by whatever trigger the call site renders:
  * the header's pencil once configured, the intro's initialize CTA before. */
 export function IdentityDialog({

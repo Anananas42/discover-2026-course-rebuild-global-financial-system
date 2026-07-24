@@ -15,7 +15,7 @@ import path from 'node:path';
 import process from 'node:process';
 
 import { childEnv } from '../shared/child-env.ts';
-import { readCourseConfig } from '../shared/course-config.ts';
+import { courseConfigured, readCourseConfig } from '../shared/course-config.ts';
 import type { CourseConfig } from '../shared/course-config.ts';
 import { CURRICULUM, taskById } from '../shared/curriculum.ts';
 import { createJsonServer, readBody, sendJson } from '../shared/http.ts';
@@ -130,6 +130,8 @@ createJsonServer(async (req, res) => {
         .toUpperCase(),
       decimals: Number.isInteger(decimals) && decimals >= 0 ? decimals : 2,
       dashboard: String(body.dashboard ?? config.dashboard).trim(),
+      // Server-authoritative: submit.ts writes it, the form never does.
+      deployedAt: config.deployedAt,
     };
     await writeFile(
       path.join(ROOT, 'course.json'),
@@ -187,11 +189,43 @@ createJsonServer(async (req, res) => {
         ...(await taskFiles(draft.marker)),
       });
     }
+    // Codeless tasks have no marker to scan: their status reports what
+    // the student has actually done — in progress once the financial
+    // system is initialized, passing once a deploy has been recorded
+    // (course.json's deployedAt, written by submit.ts).
+    const course = readCourseConfig(ROOT);
+    for (const stage of CURRICULUM) {
+      for (const entry of stage.tasks) {
+        if (!entry.codeless) continue;
+        tasks.push({
+          id: entry.id,
+          title: entry.title ?? '',
+          story: entry.story,
+          requirements: entry.requirements ?? null,
+          steps: entry.steps,
+          stage: stage.stage,
+          scenarios: [],
+          lint: [],
+          ranAt: null,
+          status: course.deployedAt
+            ? 'passing'
+            : courseConfigured(course)
+              ? 'in-progress'
+              : 'not-started',
+          implement: null,
+          tests: null,
+          context: [],
+        });
+      }
+    }
+    tasks.sort((a, b) =>
+      a.id.localeCompare(b.id, undefined, { numeric: true })
+    );
     const state: GuideState = {
       stages: CURRICULUM,
       tasks,
       lastRunAt: lastRun?.at ?? null,
-      course: readCourseConfig(ROOT),
+      course,
       financialSystemUrl: `http://localhost:${PORTS.financialSystem}`,
     };
     return sendJson(res, 200, state);

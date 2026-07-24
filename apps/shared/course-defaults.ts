@@ -11,7 +11,14 @@ export interface CourseConfig {
   decimals: number;
   /** Course server address. */
   dashboard: string;
+  /** When the first deploy reached the course server (ISO timestamp),
+   *  null before — written by submit.ts; the go-live task passes on it. */
+  deployedAt: string | null;
 }
+
+/** Whether the student has initialized their financial system. */
+export const courseConfigured = (course: CourseConfig) =>
+  Boolean(course.student && course.country && course.currency);
 
 /** The hosted course server; prefilled so submissions work out of the box. */
 export const DEFAULT_COURSE_SERVER =
@@ -23,4 +30,5 @@ export const COURSE_DEFAULTS: CourseConfig = {
   currency: '',
   decimals: 2,
   dashboard: DEFAULT_COURSE_SERVER,
+  deployedAt: null,
 };

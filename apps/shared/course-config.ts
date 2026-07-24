@@ -6,10 +6,14 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { COURSE_DEFAULTS, DEFAULT_COURSE_SERVER } from './course-defaults.ts';
+import {
+  COURSE_DEFAULTS,
+  courseConfigured,
+  DEFAULT_COURSE_SERVER,
+} from './course-defaults.ts';
 import type { CourseConfig } from './course-defaults.ts';
 
-export { COURSE_DEFAULTS, DEFAULT_COURSE_SERVER };
+export { COURSE_DEFAULTS, courseConfigured, DEFAULT_COURSE_SERVER };
 export type { CourseConfig };
 
 /**

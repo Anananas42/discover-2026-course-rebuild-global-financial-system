@@ -9,10 +9,8 @@ import type { GuideState } from '../guide-contract.ts';
 import { fetchState } from './api.ts';
 import { CitationsSection } from './components/Citations.tsx';
 import { ErrorAlert } from './components/ErrorAlert.tsx';
-import {
-  courseConfigured,
-  IdentityDialog,
-} from './components/IdentityDialog.tsx';
+import { courseConfigured } from '../../shared/course-defaults.ts';
+import { IdentityDialog } from './components/IdentityDialog.tsx';
 import { ProjectIntro } from './components/ProjectIntro.tsx';
 import { SolarStorm } from './components/SolarStorm.tsx';
 import { SubmitControls } from './components/SubmitControls.tsx';
@@ -35,10 +33,12 @@ export function App() {
   const nextTask =
     (state && nextIncompleteTask(state.stages, state.tasks)) ?? null;
   const briefingStage = state?.stages[0]?.stage;
+  // Only the code tasks count: the briefing's codeless finale needs the
+  // initialize button this flag reveals, so it cannot gate it.
   const briefingDone =
     state !== null &&
     state.tasks
-      .filter(task => task.stage === briefingStage)
+      .filter(task => task.stage === briefingStage && task.implement !== null)
       .every(task => task.status === 'passing');
 
   // The poll usually returns exactly what it returned 3 seconds ago;
@@ -147,10 +147,6 @@ export function App() {
                 tasks={state.tasks}
                 lastRunAt={state.lastRunAt}
                 focusRequest={focusRequest}
-                initializePending={
-                  briefingDone && !courseConfigured(state.course)
-                }
-                initialized={courseConfigured(state.course)}
                 onTestsRan={refresh}
                 actions={
                   // Deploying needs the student's identity — the button

@@ -1,4 +1,5 @@
 import {
+  ArrowUp,
   Check,
   ChevronRight,
   CircleCheck,
@@ -18,13 +19,11 @@ import {
 } from '@banks/shared/browser/ui/collapsible.tsx';
 
 import { vscodeHref } from '@banks/shared/browser/vscode-link.ts';
-import { TASK } from '@banks/shared/curriculum.ts';
 
 import type { FileLink, GuideTask, TaskStatus } from '../../guide-contract.ts';
+import { flashTarget } from '../flash-target.ts';
 import { CONCEPTS_BY_TASK, ConceptExplainer } from './ConceptExplainers.tsx';
 import { CurriculumText } from './CurriculumText.tsx';
-import { DeployExplainer } from './DeployExplainer.tsx';
-import { InitializeExplainer } from './InitializeExplainer.tsx';
 import {
   allCuriositiesRead,
   CURIOSITIES_BY_TASK,
@@ -80,8 +79,6 @@ export function TaskCard({
   task,
   next,
   focusSeq,
-  initializePending,
-  initialized,
   onTestsRan,
 }: {
   task: GuideTask;
@@ -91,12 +88,6 @@ export function TaskCard({
    * it and bring it into view. Runs on mount too, which covers the card
    * mounting only after TaskList opens its collapsed stage. */
   focusSeq?: number;
-  /** The hero's CTA is "Initialize your financial system" right now —
-   * the bridge card's ride-up button echoes its glow. */
-  initializePending?: boolean;
-  /** The financial system is initialized — the button the bridge card
-   * explains is gone from the hero, so the card goes with it. */
-  initialized?: boolean;
   onTestsRan: () => void;
 }) {
   const [filesOpen, setFilesOpen] = useState(false);
@@ -124,7 +115,9 @@ export function TaskCard({
     rootEl.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [focusSeq]);
   const curiositiesRead = allCuriositiesRead([task.id], useReadCuriosities());
-  const gotoName = task.implement.path.split('/').pop() ?? task.implement.path;
+  const gotoName = task.implement
+    ? (task.implement.path.split('/').pop() ?? task.implement.path)
+    : '';
   // The front task reads "in progress" even before its stub is touched —
   // the same positional sense the stage headers already use.
   const displayStatus: TaskStatus =
@@ -222,18 +215,6 @@ export function TaskCard({
           </>
         )}
 
-        {/* The first task after the mission briefing carries the bridge
-            cards: one explains the initialize button the finished briefing
-            reveals in the hero (and scrolls back up to it), the other the
-            deploy button that initializing adds to the toolbar. Initializing
-            replaces the former and reveals the latter, so both leave with it. */}
-        {task.id === TASK.openBank && !initialized && (
-          <div className="mt-3 grid gap-3">
-            <InitializeExplainer glow={initializePending ?? false} />
-            <DeployExplainer />
-          </div>
-        )}
-
         {/* A task with an attached concept teaches it right where it is
             applied: the explainer card sits between the prompt and the
             steps — the briefing's seven, and the workbench card on the
@@ -269,21 +250,43 @@ export function TaskCard({
               the next incomplete task only, a soft glow in the vivid
               brand yellow — the initialize CTA's color — points at where
               the work continues. */}
-          <Button
-            href={vscodeHref(task.implement.abs, task.implement.line)}
-            className={`font-semibold text-accent ${next ? 'shadow-[0_0_8px] shadow-brand-vivid/60' : ''}`}
-          >
-            <SquarePen size={15} aria-hidden />
-            {/* One span: the sans label and the mono file name share an
+          {task.implement ? (
+            <Button
+              href={vscodeHref(task.implement.abs, task.implement.line)}
+              className={`font-semibold text-accent ${next ? 'shadow-[0_0_8px] shadow-brand-vivid/60' : ''}`}
+            >
+              <SquarePen size={15} aria-hidden />
+              {/* One span: the sans label and the mono file name share an
                 inline baseline instead of being separately flex-centered. */}
-            <span>
-              Implement in{' '}
-              <span className="font-mono">
-                {gotoName}
-                {task.implement.line ? `:${task.implement.line}` : ''}
+              <span>
+                Implement in{' '}
+                <span className="font-mono">
+                  {gotoName}
+                  {task.implement.line ? `:${task.implement.line}` : ''}
+                </span>
               </span>
-            </span>
-          </Button>
+            </Button>
+          ) : (
+            // A codeless task's work happens elsewhere in the guide: its
+            // buttons are rides to the two controls the steps name, one
+            // per step, in step order.
+            <>
+              <Button
+                onClick={() => flashTarget('initialize-cta')}
+                className={`font-semibold text-accent ${next ? 'shadow-[0_0_8px] shadow-brand-vivid/60' : ''}`}
+              >
+                <ArrowUp size={15} aria-hidden />
+                Take me to initialization
+              </Button>
+              <Button
+                onClick={() => flashTarget('deploy-target')}
+                className="font-semibold text-accent"
+              >
+                <ArrowUp size={15} aria-hidden />
+                Take me to deployment
+              </Button>
+            </>
+          )}
           {task.tests && (
             <span className="flex flex-col gap-1">
               {/* The button carries the verdict: once the task passes it
