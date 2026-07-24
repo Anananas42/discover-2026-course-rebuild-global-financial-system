@@ -30,8 +30,9 @@ interface RecordedRun {
 }
 
 /** The ids whose scenarios all passed in the last recorded run. No run
- *  recorded (or an unreadable file) means nothing has passed yet. */
-async function passingTasks(root: string): Promise<Set<string>> {
+ *  recorded (or an unreadable file) means nothing has passed yet. Also
+ *  used by submit.ts: a deploy grades exactly these tasks. */
+export async function passingTasks(root: string): Promise<Set<string>> {
   let run: RecordedRun;
   try {
     const raw = await readFile(path.join(root, RESULTS_FILE_NAME), 'utf8');

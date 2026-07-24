@@ -17,6 +17,7 @@ import type {
   SubmissionRequest,
   SubmissionResponse,
 } from './apps/shared/submission.ts';
+import { passingTasks } from './apps/shared/unlocked-tasks.ts';
 
 const ROOT = import.meta.dirname;
 
@@ -63,9 +64,28 @@ for (const entry of entries) {
   files[rel] = await readFile(abs, 'utf8');
 }
 
-console.log(`Submitting ${Object.keys(files).length} files as: ${student}`);
+// The server grades only what passes locally — deploying scenarios the
+// local run already fails would burn course-server minutes for known
+// news. Run the tests first; an empty set still deploys (and seats the
+// country on the board), it just grades nothing.
+const passing = [...(await passingTasks(ROOT))].sort((a, b) =>
+  a.localeCompare(b, undefined, { numeric: true })
+);
 
-const request: SubmissionRequest = { student, country, currency, files };
+console.log(`Submitting ${Object.keys(files).length} files as: ${student}`);
+console.log(
+  passing.length > 0
+    ? `Grading ${passing.length} locally passing tasks: ${passing.join(', ')}`
+    : 'No locally passing tasks recorded — nothing will be graded. Run the tests first.'
+);
+
+const request: SubmissionRequest = {
+  student,
+  country,
+  currency,
+  files,
+  passingTasks: passing,
+};
 let response: SubmissionResponse;
 try {
   const res = await fetch(`${dashboard}/api/submit`, {

@@ -269,18 +269,20 @@ export function TaskCard({
           ) : (
             // A codeless task's work happens elsewhere in the guide: its
             // buttons are rides to the two controls the steps name, one
-            // per step, in step order.
+            // per step, in step order. The glow tracks the step the
+            // student is on — status is 'not-started' until the system
+            // is initialized, 'in-progress' until the first deploy.
             <>
               <Button
                 onClick={() => flashTarget('initialize-cta')}
-                className={`font-semibold text-accent ${next ? 'shadow-[0_0_8px] shadow-brand-vivid/60' : ''}`}
+                className={`font-semibold text-accent ${next && task.status === 'not-started' ? 'shadow-[0_0_8px] shadow-brand-vivid/60' : ''}`}
               >
                 <ArrowUp size={15} aria-hidden />
                 Take me to initialization
               </Button>
               <Button
                 onClick={() => flashTarget('deploy-target')}
-                className="font-semibold text-accent"
+                className={`font-semibold text-accent ${next && task.status === 'in-progress' ? 'shadow-[0_0_8px] shadow-brand-vivid/60' : ''}`}
               >
                 <ArrowUp size={15} aria-hidden />
                 Take me to deployment

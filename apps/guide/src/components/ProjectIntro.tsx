@@ -71,6 +71,10 @@ export function ProjectIntro({
         {briefingDone &&
           (courseConfigured(course) ? (
             <a
+              // The initialize button's successor keeps its flash-target
+              // id: the go-live card's "take me to initialization" still
+              // lands on what initializing became.
+              id="initialize-cta"
               href={financialSystemUrl}
               target="_blank"
               rel="noreferrer"

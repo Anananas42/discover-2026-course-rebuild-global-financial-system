@@ -9,6 +9,10 @@ export interface SubmissionRequest {
   currency: string;
   /** Implementation sources, repo-relative path -> content. Never tests. */
   files: Record<string, string>;
+  /** Task ids whose public tests pass locally — the server grades only
+   *  these, to save compute; earlier grades for the rest stand. Absent
+   *  (older clients): the server grades everything. */
+  passingTasks?: string[];
 }
 
 /** Hidden-test outcome of one task. */
