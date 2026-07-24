@@ -104,12 +104,18 @@ export function TaskCard({
   const [lintOpen, setLintOpen] = useState(false);
   const [running, setRunning] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
-  // Decided once, on first render: only the next task and tasks with
-  // work in progress start open — on a fresh visit that is a single
-  // card, not the whole first stage. After that the card never moves on
-  // its own — passing mid-session updates the pill in place (same rule
-  // as the stage sections).
+  // Only the next task and tasks with work in progress start open — on
+  // a fresh visit that is a single card, not the whole first stage.
   const [open, setOpen] = useState(() => next || task.status === 'in-progress');
+  // The one exception to "cards never move on their own": when a test
+  // run advances the front to this task, it opens — the student just
+  // finished the previous one, and the answer to "what now?" shouldn't
+  // sit folded.
+  const [prevNext, setPrevNext] = useState(next);
+  if (next !== prevNext) {
+    setPrevNext(next);
+    if (next) setOpen(true);
+  }
   const rootEl = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (focusSeq === undefined) return;
@@ -119,6 +125,10 @@ export function TaskCard({
   }, [focusSeq]);
   const curiositiesRead = allCuriositiesRead([task.id], useReadCuriosities());
   const gotoName = task.implement.path.split('/').pop() ?? task.implement.path;
+  // The front task reads "in progress" even before its stub is touched —
+  // the same positional sense the stage headers already use.
+  const displayStatus: TaskStatus =
+    next && task.status === 'not-started' ? 'in-progress' : task.status;
 
   const run = async () => {
     setRunning(true);
@@ -176,9 +186,9 @@ export function TaskCard({
           />
         ) : (
           <span
-            className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${STATUS_CLASS[task.status]}`}
+            className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${STATUS_CLASS[displayStatus]}`}
           >
-            {STATUS_LABEL[task.status]}
+            {STATUS_LABEL[displayStatus]}
           </span>
         )}
       </CollapsibleTrigger>

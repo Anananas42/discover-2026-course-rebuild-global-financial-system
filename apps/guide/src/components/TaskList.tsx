@@ -129,8 +129,8 @@ export function TaskList({
   // Which stages are expanded. Decided once, when the data first
   // arrives: only the then-current stage open. After that the state
   // belongs to the student — completing a stage updates its pill in
-  // place, it never collapses or opens anything under their eyes; the
-  // fresh defaults apply on the next page load.
+  // place and nothing collapses under their eyes; the one thing that
+  // opens by itself is the new front's stage after a test run (below).
   const [opens, setOpens] = useState<Record<number, boolean> | null>(null);
   // Each stage collapsible's root element, for the close-while-stuck
   // scroll correction in onOpenChange.
@@ -161,6 +161,18 @@ export function TaskList({
 
   // The next task's card highlights the implement button.
   const nextTaskId = nextIncompleteTask(stages, tasks)?.id;
+
+  // When a test run advances the front across a stage boundary, the new
+  // front's stage opens — the card inside opens itself (TaskCard's
+  // front-advance sync), which would otherwise happen out of sight.
+  const [prevNextTaskId, setPrevNextTaskId] = useState(nextTaskId);
+  if (nextTaskId !== prevNextTaskId) {
+    setPrevNextTaskId(nextTaskId);
+    const nextStage = tasks.find(task => task.id === nextTaskId)?.stage;
+    if (nextStage !== undefined) {
+      setOpens(prev => (prev === null ? prev : { ...prev, [nextStage]: true }));
+    }
+  }
 
   // The toolbar button collapses everything — or, once everything is
   // collapsed, expands everything.
