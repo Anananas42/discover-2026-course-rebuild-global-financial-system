@@ -2,6 +2,8 @@ import { ArrowUp } from 'lucide-react';
 
 import { Button } from '@banks/shared/browser/Button.tsx';
 
+import { flashTarget } from '../flash-target.ts';
+
 // The bridge out of the mission briefing: task 1.1 is the first task
 // that happens inside the financial system, so its card explains the
 // initialize button the finished briefing reveals in the hero — and
@@ -21,14 +23,14 @@ export function InitializeExplainer({ glow }: { glow: boolean }) {
       <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <h4 className="text-[15px] font-semibold">Enter the real world</h4>
         <Button
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          onClick={() => flashTarget('initialize-cta')}
           className={
             glow
               ? 'font-semibold shadow-[0_0_10px] shadow-brand-vivid/60'
               : 'text-muted hover:text-ink'
           }
         >
-          <ArrowUp size={15} aria-hidden /> Take me there
+          <ArrowUp size={15} aria-hidden /> Take me to my financial system
         </Button>
       </div>
       <div className="space-y-2.5 text-[15px] leading-relaxed">

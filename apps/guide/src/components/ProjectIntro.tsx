@@ -84,6 +84,7 @@ export function ProjectIntro({
               onSaved={onSaved}
               trigger={open => (
                 <button
+                  id="initialize-cta"
                   className={`${CTA_CLASS} bg-brand-vivid text-brand-vivid-ink shadow-[0_0_10px] shadow-brand-vivid/60`}
                   onClick={open}
                 >

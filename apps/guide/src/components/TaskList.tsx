@@ -223,15 +223,19 @@ export function TaskList({
             )}
             {anyOpen ? 'Collapse all' : 'Expand all'}
           </Button>
-          <Button
-            disabled={running}
-            className="py-2"
-            onClick={() => void run()}
-          >
-            <FlaskConical size={15} aria-hidden />
-            {running ? 'Running…' : 'Run tests'}
-          </Button>
-          {actions}
+          {/* The bridge card's "Take me to deployment" flashes this slot:
+              the deploy button lands here once the system is initialized. */}
+          <span id="deploy-target" className="flex items-center gap-3">
+            <Button
+              disabled={running}
+              className="py-2"
+              onClick={() => void run()}
+            >
+              <FlaskConical size={15} aria-hidden />
+              {running ? 'Running…' : 'Run tests'}
+            </Button>
+            {actions}
+          </span>
         </div>
       }
     >
