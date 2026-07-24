@@ -23,6 +23,7 @@ import { TASK } from '@banks/shared/curriculum.ts';
 import type { FileLink, GuideTask, TaskStatus } from '../../guide-contract.ts';
 import { CONCEPTS_BY_TASK, ConceptExplainer } from './ConceptExplainers.tsx';
 import { CurriculumText } from './CurriculumText.tsx';
+import { DeployExplainer } from './DeployExplainer.tsx';
 import { InitializeExplainer } from './InitializeExplainer.tsx';
 import {
   allCuriositiesRead,
@@ -212,12 +213,14 @@ export function TaskCard({
         )}
 
         {/* The first task after the mission briefing carries the bridge
-            card: it explains the initialize button the finished briefing
-            reveals in the hero, and scrolls back up to it. Initializing
-            replaces that button, so the card leaves with it. */}
+            cards: one explains the initialize button the finished briefing
+            reveals in the hero (and scrolls back up to it), the other the
+            deploy button that initializing adds to the toolbar. Initializing
+            replaces the former and reveals the latter, so both leave with it. */}
         {task.id === TASK.openBank && !initialized && (
           <div className="mt-3 grid gap-3">
             <InitializeExplainer glow={initializePending ?? false} />
+            <DeployExplainer />
           </div>
         )}
 

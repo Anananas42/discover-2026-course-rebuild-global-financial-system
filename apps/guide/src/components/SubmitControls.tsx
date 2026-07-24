@@ -1,7 +1,7 @@
 import {
   CheckCircle2,
   ClipboardList,
-  Send,
+  Rocket,
   Wrench,
   XCircle,
 } from 'lucide-react';
@@ -20,12 +20,14 @@ import type { CourseConfig } from '../../../shared/course-defaults.ts';
 import { DEFAULT_COURSE_SERVER } from '../../../shared/course-defaults.ts';
 import { saveCourse, submitForEvaluation } from '../api.ts';
 
-// Submitting lives in the Tasks toolbar: one button beside "Run tests",
+// Deploying lives in the Tasks toolbar — one button beside "Run tests",
+// rendered only once the financial system is initialized (App gates it;
+// before that, a deploy would be rejected for the missing identity) —
 // and a wrench for the rare configuration (which server receives the
-// submission — prefilled, explained in its own dialog). The verdict
-// opens as a dialog when the evaluation finishes: green with the
-// server's output, or red when nothing was recorded. Once a verdict
-// exists, a clipboard button reopens the latest one.
+// deploy — prefilled, explained in its own dialog). The verdict opens
+// as a dialog when the evaluation finishes: green with the server's
+// output, or red when nothing was recorded. Once a verdict exists, a
+// clipboard button reopens the latest one.
 
 export function SubmitControls({
   course,
@@ -74,8 +76,8 @@ export function SubmitControls({
         onClick={() => void submit()}
         className="px-5 py-2 font-semibold text-accent"
       >
-        <Send size={16} aria-hidden />
-        {busy ? 'Submitting…' : 'Submit for evaluation'}
+        <Rocket size={16} aria-hidden />
+        {busy ? 'Deploying…' : 'Deploy updates'}
       </Button>
 
       {result && (
@@ -106,19 +108,19 @@ export function SubmitControls({
         <DialogTrigger asChild>
           <Button
             className="py-2"
-            title="Submission settings"
-            aria-label="Submission settings"
+            title="Deployment settings"
+            aria-label="Deployment settings"
           >
             <Wrench size={16} aria-hidden />
           </Button>
         </DialogTrigger>
         <DialogContent>
-          <DialogTitle>Submitting for evaluation</DialogTitle>
+          <DialogTitle>Deploying updates</DialogTitle>
           <DialogDescription>
-            Sends your implementation to the course server, which runs the full
-            test suite against it — including hidden scenarios stricter than the
-            local tests. Your results appear on the classroom board; your own
-            test files are never sent.
+            Deploying sends your implementation to the course server, which runs
+            the full test suite against it — including hidden scenarios stricter
+            than the local tests. Your results appear on the classroom board;
+            your own test files are never sent.
           </DialogDescription>
           <label className="text-sm font-semibold" htmlFor="course-server">
             Course server
@@ -157,12 +159,12 @@ export function SubmitControls({
             {result?.ok ? (
               <span className="flex items-center gap-2 text-ok">
                 <CheckCircle2 size={18} aria-hidden />
-                Submitted — evaluation complete.
+                Update deployed — evaluation complete.
               </span>
             ) : (
               <span className="flex items-center gap-2 text-danger">
                 <XCircle size={18} aria-hidden />
-                Submission failed — nothing was recorded.
+                Deployment failed — nothing was recorded.
               </span>
             )}
           </DialogTitle>

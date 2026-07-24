@@ -153,7 +153,14 @@ export function App() {
                 initialized={courseConfigured(state.course)}
                 onTestsRan={refresh}
                 actions={
-                  <SubmitControls course={state.course} onSubmitted={refresh} />
+                  // Deploying needs the student's identity — the button
+                  // arrives together with the financial system.
+                  courseConfigured(state.course) ? (
+                    <SubmitControls
+                      course={state.course}
+                      onSubmitted={refresh}
+                    />
+                  ) : undefined
                 }
               />
               <VscodeTips />
