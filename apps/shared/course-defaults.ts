@@ -14,7 +14,8 @@ export interface CourseConfig {
 }
 
 /** The hosted course server; prefilled so submissions work out of the box. */
-export const DEFAULT_COURSE_SERVER = 'https://discover-2026.pazderka.dev';
+export const DEFAULT_COURSE_SERVER =
+  'https://discover-2026.pazderka.dev/e40ae61c374eae1d';
 
 export const COURSE_DEFAULTS: CourseConfig = {
   student: '',
