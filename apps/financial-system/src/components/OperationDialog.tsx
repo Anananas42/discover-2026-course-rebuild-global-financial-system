@@ -151,9 +151,11 @@ export function OperationDialog({
         </form>
         {blocked && (
           <div className="mt-4 rounded-md bg-faint px-3 py-2 text-sm text-muted">
-            <span className="font-mono text-xs font-semibold">Blocked</span>
+            <span className="font-mono text-xs font-semibold">
+              Not implemented
+            </span>
             <br />
-            {blocked.message} The operation unlocks once that task's code
+            {blocked.message} The operation starts working once that task's code
             exists.
           </div>
         )}

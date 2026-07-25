@@ -71,7 +71,11 @@ describe('task 1.1: licensing a new commercial bank', () => {
     );
     expect(error).toBeInstanceOf(DuplicateBankNameError);
   });
+});
 
+// Prebuilt name hygiene in registerBank — not part of task 1.1, so no
+// `task <id>` in the describe name: these pass with the stub in place.
+describe('the licensing name check', () => {
   it('rejects "Central Bank" as a name, in any casing', async () => {
     const error = await Effect.runPromise(
       Effect.flip(centralBank.registerBank({ name: 'central BANK' }))

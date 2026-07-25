@@ -177,7 +177,7 @@ export class CentralBank implements CentralBankApi {
    * lands at the bank and its own systems come online — its database,
    * with its own account in it (the bank's side, prebuilt). Tidies the
    * name on the way in: spaces around it are ignored, a blank one is
-   * refused.
+   * refused, and the central bank's own name is reserved.
    */
   registerBank(input: {
     name: string;
@@ -197,6 +197,14 @@ export class CentralBank implements CentralBankApi {
           })
         );
       }
+      if (name.toLowerCase() === CENTRAL_BANK_NAME.toLowerCase()) {
+        return yield* Effect.fail(
+          new InvalidBankNameError({
+            name,
+            reason: 'reserved for the central bank itself',
+          })
+        );
+      }
       const bank = yield* recordNewBank({ name });
       yield* commercialBanks.connectBank({ bankId: bank.id, name: bank.name });
       return bank;
@@ -204,18 +212,16 @@ export class CentralBank implements CentralBankApi {
   }
 
   /**
-   * The central bank's own records of a licensing: the bank's row in the
-   * register and its reserve account. Only this institution's database —
-   * what happens at the bank itself is the bank's job. The name arrives
-   * already tidied: no spaces around it, never blank (registerBank's
-   * job).
+   * Record the new bank in the central bank's database: one row in the
+   * register (the list of licensed banks) and one reserve account (the
+   * bank's money held at the central bank), created together in one
+   * transaction. A name already in the register is refused with
+   * DuplicateBankNameError — the signature promises it. The repository
+   * methods you need are on centralBankDb — the Database tab lists them.
    */
   private recordNewBank(input: {
     name: string;
-  }): Effect.Effect<
-    CommercialBank,
-    InvalidBankNameError | DuplicateBankNameError
-  > {
+  }): Effect.Effect<CommercialBank, DuplicateBankNameError> {
     const { name } = input;
     const centralBankDb = this.centralBankDb;
     return Effect.gen(function* () {

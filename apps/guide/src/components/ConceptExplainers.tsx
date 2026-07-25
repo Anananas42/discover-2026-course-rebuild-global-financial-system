@@ -125,6 +125,11 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
           Nothing crashes: the error is the method's answer, and the tests check
           for exactly it.
         </p>
+        <p>
+          This is why the course is built on Effect: a method's signature lists
+          every error it can answer with, next to the success type. In every
+          task, that list is exactly the errors your code must produce.
+        </p>
       </>
     ),
   },
@@ -176,8 +181,8 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
           <FinancialSystemLink path="/database">
             Database tab
           </FinancialSystemLink>{' '}
-          is your reference for the code you write: which data lives in which
-          table, and the repository methods that read and write it.
+          is where you&apos;ll find what this task needs: which table each piece
+          of data lives in, and the repository methods that read and write it.
         </p>
       </>
     ),

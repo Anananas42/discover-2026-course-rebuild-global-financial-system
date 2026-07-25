@@ -211,7 +211,7 @@ export const CURRICULUM: CurriculumStage[] = [
         requirements: {
           intro: 'Licensing a commercial bank consists of the following steps:',
           items: [
-            "Register the bank, under its name, in the central bank's register of commercial banks.",
+            "Register the bank in the register of commercial banks — the central bank's list of who is licensed to operate.",
             "Open the bank's reserve account — its money held at the central bank — in the central bank's database.",
           ],
         },

@@ -94,7 +94,9 @@ export function readInstructions(headquarters: {
 /**
  * Checks a proposed amount: a negative one is refused with
  * NegativeAmountError, anything else comes back unchanged. The signature
- * already promises both outcomes.
+ * already promises both outcomes — and every task ahead works the same
+ * way: the errors a method's signature lists are exactly the errors your
+ * code must produce.
  */
 export function requireNonNegativeAmount(
   amount: Big
