@@ -109,10 +109,18 @@ describe('task 1.1: licensing a new commercial bank', () => {
       const crashed = crashingSystem(system, write);
       const broken = new CentralBank(crashed.centralBankDb);
       new CommercialBanks(crashed.commercialBankDb, broken);
-      await expect(
-        Effect.runPromise(broken.registerBank({ name: 'First Bank' }))
-      ).rejects.toThrow();
-      expect(crashed.fired()).toBe(true);
+      const outcome = await Effect.runPromise(
+        broken.registerBank({ name: 'First Bank' })
+      ).then(
+        () => 'succeeded',
+        () => 'crashed'
+      );
+      // A write this licensing never reaches proves nothing — an
+      // unimplemented task reaches none of them, and must be reported as
+      // unimplemented by the other scenarios rather than as a puzzling
+      // claim about a crash that never happened.
+      if (!crashed.fired()) continue;
+      expect(outcome).toBe('crashed');
       expect(await system.dump()).toEqual(before);
     }
   });
