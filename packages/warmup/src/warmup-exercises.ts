@@ -87,10 +87,9 @@ export function requireNonNegativeAmount(
 }
 
 /**
- * Prebuilt, not a task: a stand-in for the prebuilt repositories that
- * read the real database. Every answer arrives as a Promise, because the
- * database is a separate program and its reply travels back over a wire.
- * The next two tasks both read from this one.
+ * Prebuilt, not a task: a repository, the way every task ahead reads and
+ * writes. Every answer arrives as a Promise, because the database is a
+ * separate program and its reply travels back over a wire.
  */
 export interface StandInRepo {
   ownAccountBalance(): Promise<Big>;

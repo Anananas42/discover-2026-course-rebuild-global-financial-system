@@ -167,9 +167,8 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
         code holds its own institution's handle and reads and writes through
         prebuilt repositories, one per table:{' '}
         <Code>centralBankDb.accounts.setBalance(...)</Code>,{' '}
-        <Code>commercialBankDb.claims.create(...)</Code>. For the next few tasks
-        a stand-in plays that role: here, ask it for one balance and hand back
-        its answer.
+        <Code>commercialBankDb.claims.create(...)</Code>. In this task you read
+        from one.
       </p>
     ),
   },
