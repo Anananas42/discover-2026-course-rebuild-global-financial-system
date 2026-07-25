@@ -43,7 +43,9 @@ export function WriteOffBankDebtDialog({
   const [borrower, setBorrower] = useState('');
 
   const debtors = claims.flatMap(claim => {
-    const bank = banks.find(candidate => candidate.name === claim.borrower);
+    const bank = banks.find(
+      candidate => String(candidate.id) === claim.borrower
+    );
     return bank ? [{ bank, amount: claim.amount }] : [];
   });
   const selected =

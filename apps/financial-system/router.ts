@@ -157,11 +157,11 @@ async function systemBalanced(): Promise<boolean> {
       commercialBanks.balanceSheet({ bankId: bank.id })
     );
     const reserves =
-      central.reserveAccounts.find(account => account.owner === bank.name)
+      central.reserveAccounts.find(account => account.bic === bicFor(bank.id))
         ?.balance ?? zero;
     const owed =
-      central.claims.find(claim => claim.borrower === bank.name)?.amount ??
-      zero;
+      central.claims.find(claim => claim.borrower === String(bank.id))
+        ?.amount ?? zero;
     const assets = reserves.plus(books.totalLoans);
     if (!assets.eq(books.totalDeposits.plus(owed).plus(books.equity))) {
       return false;
@@ -241,11 +241,12 @@ export const appRouter = t.router({
         const zero = new Big(0);
         const reserves =
           central.reserveAccounts.find(
-            account => account.owner === bankBooks.bank.name
+            account => account.bic === bicFor(bankBooks.bank.id)
           )?.balance ?? zero;
         const owedToCentralBank =
-          central.claims.find(claim => claim.borrower === bankBooks.bank.name)
-            ?.amount ?? zero;
+          central.claims.find(
+            claim => claim.borrower === String(bankBooks.bank.id)
+          )?.amount ?? zero;
         return {
           bank: bankBooks.bank,
           accounts: bankBooks.accounts.map(account => ({
@@ -526,6 +527,7 @@ export const appRouter = t.router({
         claims: books.claims.map(claim => ({
           id: claim.id,
           borrower: claim.borrower,
+          borrowerName: claim.borrowerName,
           amount: money(claim.amount),
         })),
         totalReserves: money(books.totalReserves),

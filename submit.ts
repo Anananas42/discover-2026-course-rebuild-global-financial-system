@@ -103,7 +103,7 @@ try {
 }
 
 // The deploy reached the server — record the first success; the guide's
-// report-for-duty task (0.8) passes on this fact.
+// report-for-duty task (0.9) passes on this fact.
 if (!config.deployedAt) {
   await writeFile(
     path.join(ROOT, 'course.json'),

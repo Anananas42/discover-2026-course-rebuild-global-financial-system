@@ -180,6 +180,7 @@ createJsonServer(async (req, res) => {
         title: draft.marker.title,
         story: taskById(draft.marker.id)?.story ?? '',
         requirements: taskById(draft.marker.id)?.requirements ?? null,
+        implementation: taskById(draft.marker.id)?.implementation ?? null,
         steps: taskById(draft.marker.id)?.steps ?? [],
         stage: draft.stage,
         scenarios: draft.scenarios,
@@ -202,6 +203,7 @@ createJsonServer(async (req, res) => {
           title: entry.title ?? '',
           story: entry.story,
           requirements: entry.requirements ?? null,
+          implementation: entry.implementation ?? null,
           steps: entry.steps,
           stage: stage.stage,
           scenarios: [],
@@ -389,8 +391,10 @@ async function runPublicTests(taskId?: string): Promise<TestRun> {
   }
   // The tests are only half the verdict: the repo's own lint rules run
   // over the tested tasks' files too, because they see what vitest and
-  // the type checker both miss — above all a Promise started and never
-  // waited for. Findings ride on the task results they belong to.
+  // the type checker both miss — a Promise started and never waited for,
+  // a write that reaches past the transaction it sits in (lint-rules.ts,
+  // the course's own rules). Findings ride on the task results they
+  // belong to.
   const lint = await lintTasks(taskId);
   for (const result of Object.values(tasks)) result.lint = [];
   for (const [id, findings] of Object.entries(lint)) {

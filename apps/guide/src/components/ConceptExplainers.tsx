@@ -7,15 +7,17 @@ import { TASK } from '@banks/shared/curriculum.ts';
 
 import { FinancialSystemLink } from './CurriculumText.tsx';
 
-// The onramp explainers: the seven concepts task 1.1 would otherwise
-// need all at once, each taught as a card inside the stage-0 task that
-// applies it — introduced and instantly used, never a wall of theory
-// upfront. One more card sits on task 1.1 itself: how to work in the
-// financial system, taught on the first task that happens there. Every
-// card carries a mark-as-read button (the task-test idiom: quiet until
-// clicked, green after) — the click changes nothing but is a conscious
-// act of having read. Read-state is a display preference like the
-// theme — per browser, in localStorage, never in course.json.
+// The onramp explainers: the concepts task 1.1 would otherwise need all
+// at once, each taught as a card inside the stage-0 task that applies it
+// — introduced and instantly used, never a wall of theory upfront. The
+// last of them teaches no new piece, only how the earlier ones sit in
+// one method, which is the shape every task from 1.1 on has. One more
+// card sits on task 1.1 itself: how to work in the financial system,
+// taught on the first task that happens there. Every card carries a
+// mark-as-read button (the task-test idiom: quiet until clicked, green
+// after) — the click changes nothing but is a conscious act of having
+// read. Read-state is a display preference like the theme — per
+// browser, in localStorage, never in course.json.
 
 const STORAGE_KEY = 'guide-concepts-read';
 
@@ -27,17 +29,19 @@ type ConceptId =
   | 'promises'
   | 'db'
   | 'transactions'
+  | 'composing'
   | 'workbench';
 
 /** Which explainers appear on which task's card, in order. */
 export const CONCEPTS_BY_TASK: Record<string, ConceptId[]> = {
   '0.1': ['loop'],
   '0.2': ['big'],
-  '0.3': ['db'],
-  '0.4': ['effect'],
-  '0.5': ['promises'],
-  '0.6': ['errors'],
+  '0.3': ['effect'],
+  '0.4': ['errors'],
+  '0.5': ['db'],
+  '0.6': ['promises'],
   '0.7': ['transactions'],
+  '0.8': ['composing'],
   [TASK.openBank]: ['workbench'],
 };
 
@@ -102,33 +106,39 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
         <p>
           It is boilerplate — every task already has it in place, and your code
           goes inside; you don't need to understand its syntax. The one part you
-          write yourself is <Code>yield*</Code>: put it in front of every call,
-          every time, without thinking. It runs the call and hands back the
-          answer.
+          write yourself is <Code>yield*</Code>, and it goes in front of every
+          call that hands back an Effect — every method you write in this
+          course, and every one it calls. It runs that call and hands back its
+          answer; if the call refuses instead, your method stops there and
+          passes the refusal on.
         </p>
       </>
     ),
   },
   errors: {
-    title: 'Errors are answers, not crashes',
+    title: 'Errors are outcomes, not crashes',
     body: (
       <>
-        <p>
-          A method refuses by handing a named error to <Code>Effect.fail</Code>:
-        </p>
+        <p>A method refuses by yielding a named error:</p>
         <pre className="overflow-x-auto rounded-lg border border-line bg-faint p-3 font-mono text-[13px] leading-relaxed">
           {`return yield* Effect.fail(
   new NegativeAmountError({ amount: amount.toString() })
 );`}
         </pre>
         <p>
-          Nothing crashes: the error is the method's answer, and the tests check
-          for exactly it.
+          The <Code>yield*</Code> is what refuses. <Code>Effect.fail</Code> only
+          builds the refusal for it to hand back — built and not yielded, it
+          does nothing at all.
+        </p>
+        <p>
+          Nothing crashes: refusing is one of the two ways the method can end,
+          and the tests check for exactly this error.
         </p>
         <p>
           This is why the course is built on Effect: a method's signature lists
-          every error it can answer with, next to the success type. In every
-          task, that list is exactly the errors your code must produce.
+          every error it can refuse with, next to the type it hands back when it
+          succeeds. In every task, that list is exactly the errors your code
+          must produce.
         </p>
       </>
     ),
@@ -137,13 +147,13 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
     title: 'Promises — answers that arrive later',
     body: (
       <p>
-        When you call <Code>headquarters.instructions()</Code>, the answer is
-        not ready yet — it lives in another program. The call does not stop and
-        wait: it immediately hands you a <Code>Promise</Code> — a box the answer
-        will arrive in — and your code keeps running. Only when you need the
-        instructions themselves do you wait, with one pattern, always the same:{' '}
-        <Code>yield* Effect.promise(() =&gt; headquarters.instructions())</Code>
-        .
+        When you call <Code>repo.licensedBankCount()</Code>, the answer is not
+        ready yet — it lives in another program, the database. The call does not
+        stop and wait: it immediately hands you a <Code>Promise</Code> — a box
+        the answer will arrive in — and your code keeps running. That box is
+        what you handed straight back in the task before this one. Here you need
+        the number inside it, and waiting has one pattern, always the same:{' '}
+        <Code>yield* Effect.promise(() =&gt; repo.licensedBankCount())</Code>.
       </p>
     ),
   },
@@ -157,9 +167,67 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
         code holds its own institution's handle and reads and writes through
         prebuilt repositories, one per table:{' '}
         <Code>centralBankDb.accounts.setBalance(...)</Code>,{' '}
-        <Code>commercialBankDb.claims.create(...)</Code>. In this task a
-        stand-in plays that role: ask it for one balance, hand back its answer.
+        <Code>commercialBankDb.claims.create(...)</Code>. For the next few tasks
+        a stand-in plays that role: here, ask it for one balance and hand back
+        its answer.
       </p>
+    ),
+  },
+  composing: {
+    title: 'Read, check, write — in one method',
+    body: (
+      <>
+        <p>
+          Almost every task ahead is the same three steps in the same order:
+          read how things stand, refuse if the operation is not allowed, then
+          write. You have written each step on its own already — refusing with a
+          named error in task 0.4, waiting for a Promise in task 0.6. Here they
+          go in one method:
+        </p>
+        <pre className="overflow-x-auto rounded-lg border border-line bg-faint p-3 font-mono text-[13px] leading-relaxed">
+          {`const taken = yield* Effect.promise(() =>
+  register.isNameTaken({ name })
+);
+if (taken) {
+  return yield* Effect.fail(new AccountExistsError({ name }));
+}
+return yield* Effect.promise(() => register.open({ name }));`}
+        </pre>
+        <p>
+          Each call that returns a Promise gets its own{' '}
+          <Code>yield* Effect.promise(...)</Code> line, and the <Code>if</Code>{' '}
+          sits between them — in your method, not inside either call.
+        </p>
+        <p>
+          It is tempting to reach for one <Code>Effect.promise</Code> instead
+          and write ordinary <Code>async</Code> code inside it, where{' '}
+          <Code>await</Code> works as usual. That version does not refuse
+          anything:
+        </p>
+        <pre className="overflow-x-auto rounded-lg border border-line bg-faint p-3 font-mono text-[13px] leading-relaxed">
+          {`return yield* Effect.promise(async () => {
+  if (await register.isNameTaken({ name })) {
+    // Nothing here says no — read on.
+    return Effect.fail(new AccountExistsError({ name }));
+  }
+  return await register.open({ name });
+});`}
+        </pre>
+        <p>
+          <Code>Effect.fail(...)</Code> does not throw and does not stop the
+          method. It <i>builds</i> a refusal, and a refusal only happens when
+          your method hands it back with <Code>yield*</Code>. Inside an{' '}
+          <Code>async</Code> function you cannot write <Code>yield*</Code> — so
+          that refusal becomes an ordinary return value. The Promise finishes
+          with it, <Code>Effect.promise</Code> treats it as the answer, and the
+          caller is told the account was opened.
+        </p>
+        <p>
+          Here TypeScript catches it, because a refusal is not the account the
+          signature promises. Take the red squiggle as the reminder: the check
+          belongs in the method, between the two waits.
+        </p>
+      </>
     ),
   },
   workbench: {
@@ -218,6 +286,26 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
           the mission stages the same call rides your institution's own database
           handle — <Code>commercialBankDb.transaction(...)</Code> — because a
           transaction can never span two institutions' databases.
+        </p>
+        <p>
+          One thing decides whether a write belongs to the transaction: the
+          handle it goes through. <Code>tx</Code> is not the same object as{' '}
+          <Code>db</Code>, and inside the block both are within reach — so both
+          of these compile, and they do not do the same thing:
+        </p>
+        <pre className="overflow-x-auto rounded-lg border border-line bg-faint p-3 font-mono text-[13px] leading-relaxed">
+          {`db.transaction(async tx => {
+  await db.setBalance({ ... });   // lands on its own, at once
+  await tx.setBalance({ ... });   // lands with the transaction
+});`}
+        </pre>
+        <p>
+          When nothing goes wrong, both move the money and look equally right —
+          which is exactly why this is worth knowing. The difference appears
+          only when something throws, and by then the write made on{' '}
+          <Code>db</Code> is already permanent: the transaction has no claim on
+          it and cannot take it back. This task's third test cuts the power
+          between the two writes to find out which one you wrote.
         </p>
       </>
     ),

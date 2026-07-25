@@ -4,6 +4,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { CommercialBanks } from '@banks/commercial-bank/commercial-bank-service.ts';
 import { connect } from '@banks/db/database.ts';
+import type { CrashPoint } from '@banks/db/db-sabotage.ts';
+import { crashingSystem } from '@banks/db/db-sabotage.ts';
 import type { FinancialSystemDb } from '@banks/db/financial-system-db.ts';
 
 import {
@@ -18,6 +20,7 @@ import {
   SameBankError,
   UnknownBankError,
 } from './bank-errors.ts';
+import { bicFor } from './bank-identity.ts';
 import { CentralBank, parseAmount } from './central-bank-service.ts';
 import { CURRENCY } from './currency.ts';
 
@@ -71,6 +74,48 @@ describe('task 1.1: licensing a new commercial bank', () => {
     );
     expect(error).toBeInstanceOf(DuplicateBankNameError);
   });
+
+  it("identifies each reserve account by the bank's BIC", async () => {
+    const first = await Effect.runPromise(
+      centralBank.registerBank({ name: 'First Bank' })
+    );
+    const second = await Effect.runPromise(
+      centralBank.registerBank({ name: 'Second Bank' })
+    );
+    const books = await Effect.runPromise(centralBank.balanceSheet());
+    // Each account carries the BIC of the bank it belongs to — the name
+    // beside it is a label, so the BIC is what has to match.
+    const byBic = new Map(
+      books.reserveAccounts.map(account => [account.bic, account.owner])
+    );
+    expect(byBic.get(bicFor(first.id))).toBe('First Bank');
+    expect(byBic.get(bicFor(second.id))).toBe('Second Bank');
+  });
+
+  it('a crash between the two rows leaves no half-licensed bank', async () => {
+    // Licensing writes twice — the register row, then the reserve
+    // account. Each write in turn is made to throw, and afterwards the
+    // raw tables must read exactly as they did before the attempt: a
+    // registered bank without its reserve account is a state the central
+    // bank must never be able to reach. Only writes made through the
+    // handle `transaction` hands out roll back together.
+    const writes: CrashPoint[] = [
+      { repo: 'commercialBanks', method: 'create', call: 1 },
+      { repo: 'accounts', method: 'create', call: 1 },
+    ];
+    for (const write of writes) {
+      await system.reset();
+      const before = await system.dump();
+      const crashed = crashingSystem(system, write);
+      const broken = new CentralBank(crashed.centralBankDb);
+      new CommercialBanks(crashed.commercialBankDb, broken);
+      await expect(
+        Effect.runPromise(broken.registerBank({ name: 'First Bank' }))
+      ).rejects.toThrow();
+      expect(crashed.fired()).toBe(true);
+      expect(await system.dump()).toEqual(before);
+    }
+  });
 });
 
 // Prebuilt name hygiene in registerBank — not part of task 1.1, so no
@@ -99,7 +144,8 @@ describe('task 2.2: lending to a bank', () => {
     expect(books.totalReserves.eq('4000')).toBe(true);
     expect(books.totalClaims.eq('4200')).toBe(true);
     expect(books.equity.eq('200')).toBe(true);
-    expect(books.claims[0]?.borrower).toBe('First Bank');
+    expect(books.claims[0]?.borrower).toBe(String(bank.id));
+    expect(books.claims[0]?.borrowerName).toBe('First Bank');
   });
 
   it("the interest owed pushes the bank's own account below zero", async () => {

@@ -1,8 +1,8 @@
-// The named error task 0.6 refuses with — no other briefing task uses
-// this file. It is shaped exactly like the banking domain's errors (see
+// The named errors the briefing tasks refuse with (0.6, 0.8). They are
+// shaped exactly like the banking domain's errors (see
 // packages/central-bank/src/bank-errors.ts): an Effect tagged error
 // that becomes part of the method's return type, with a message that
-// states the actual numbers.
+// states the actual values.
 
 import { Data } from 'effect';
 
@@ -12,5 +12,14 @@ export class NegativeAmountError extends Data.TaggedError(
 )<{ amount: string }> {
   override get message(): string {
     return `The amount ${this.amount} is negative — money amounts must not be.`;
+  }
+}
+
+/** A name the register already holds an account under. */
+export class AccountExistsError extends Data.TaggedError('AccountExistsError')<{
+  name: string;
+}> {
+  override get message(): string {
+    return `The register already holds an account for ${this.name}.`;
   }
 }

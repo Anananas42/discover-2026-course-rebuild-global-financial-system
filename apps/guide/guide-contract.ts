@@ -14,8 +14,9 @@ export interface Scenario {
 }
 
 /** A lint finding inside a task's region: the repo's own lint rules run
- *  with the tests, because they see what the type checker cannot —
- *  above all a Promise started and never waited for. */
+ *  with the tests, because they see what the type checker cannot — a
+ *  Promise started and never waited for, a write that reaches past the
+ *  transaction it sits in (lint-rules.ts). */
 export interface LintFinding {
   message: string;
   path: string;
@@ -40,6 +41,10 @@ export interface GuideTask {
    *  rendered as the story's next paragraph; null for tasks whose story
    *  reads fine alone. */
   requirements: { intro: string; items: string[] } | null;
+  /** What the code records to make those requirements hold, in the same
+   *  shape and rendered right after them; null where the story and the
+   *  task's own documentation say enough. */
+  implementation: { intro: string; items: string[] } | null;
   /** How to walk the story by hand in the financial system, in order. */
   steps: string[];
   /** The curriculum stage this task belongs to — the id's major part. */

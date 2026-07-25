@@ -34,7 +34,7 @@ type Handle = Handles[number];
 type Repo = Handle['repos'][number];
 type Method = Repo['methods'][number];
 
-/** `centralBankDb.accounts.create({ owner, number })` — the call with
+/** `centralBankDb.accounts.create({ owner, bic })` — the call with
  *  parameter names only; object-input methods (all repo methods) show
  *  their braces. */
 function callText(prefix: string, method: Method): string {

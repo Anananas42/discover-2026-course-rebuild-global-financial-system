@@ -277,7 +277,7 @@ export function CentralBankScreen({
                       key={claim.id}
                       className="flex items-baseline justify-between gap-3 py-0.5 text-sm"
                     >
-                      <span>{claim.borrower} owes</span>
+                      <span>{claim.borrowerName} owes</span>
                       <Amount value={claim.amount} currency={config.currency} />
                     </div>
                   ))

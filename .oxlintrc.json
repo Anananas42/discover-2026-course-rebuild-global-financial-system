@@ -10,7 +10,9 @@
     "**/student-repo/**"
   ],
   "plugins": ["typescript", "import"],
+  "jsPlugins": ["./lint-rules.ts"],
   "rules": {
+    "course/transaction-writes-use-tx": "warn",
     "import/namespace": "off",
     "import/no-default-export": "warn",
     "import/no-duplicates": "warn",
@@ -59,7 +61,7 @@
   },
   "overrides": [
     {
-      "files": ["**/vite.config.ts", "**/vitest.config.ts"],
+      "files": ["**/vite.config.ts", "**/vitest.config.ts", "lint-rules.ts"],
       "rules": {
         "import/no-default-export": "off"
       }

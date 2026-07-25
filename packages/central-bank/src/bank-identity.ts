@@ -3,9 +3,11 @@
 // assigns each licensed bank its code (here: the register id, padded to
 // four digits), and the BIC — the Bank Identifier Code every payment
 // message routes by — is built from it. A bank's reserve account at the
-// central bank is numbered by its BIC: the identity the license creates
-// is the identity payments settle under. Banks issue only their own
-// account numbers, one layer down (iban.ts builds IBANs from both).
+// central bank is identified by its BIC: the identity the license
+// creates is the identity payments settle under, and the one the central
+// bank's own books find the account by — never the bank's name, which is
+// only a label and could change. Banks issue their own clients' account
+// numbers, one layer down (iban.ts builds IBANs from both).
 //
 // The country code comes from course.json: an explicit `countryCode`
 // field when present, otherwise the first two letters of the country
@@ -55,7 +57,7 @@ export function bicFor(bankId: number, country: string = COUNTRY_CODE): string {
 }
 
 /** The central bank's own BIC: bank code 0000, which no commercial bank
- *  can ever hold — register ids start at 1. Its own account is numbered
- *  by it, like every institution's account in its books at the top of
- *  the system. */
+ *  can ever hold — register ids start at 1. Its own account is
+ *  identified by it, like every institution's account in its books at
+ *  the top of the system. */
 export const CENTRAL_BANK_BIC: string = bicFor(0);

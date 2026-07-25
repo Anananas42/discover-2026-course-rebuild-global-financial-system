@@ -39,8 +39,11 @@
 //   states what a method returns and every way it can fail. Inside a
 //   method, other methods are called with `yield*` and failures are
 //   reported with `yield* Effect.fail(...)`.
-// - Claims key the borrower by id — the bank id here, the personal id at
-//   the commercial layer; balance sheets resolve display names.
+// - Rows are keyed by id, never by a name: claims key the borrower by id
+//   (the bank id here, the personal id at the commercial layer) and
+//   accounts in the central bank's books are found by the holder's BIC.
+//   Names travel alongside as labels — balance sheets carry them for
+//   display, and a label can change without breaking a single lookup.
 
 import Big from 'big.js';
 import { Effect } from 'effect';
@@ -79,12 +82,20 @@ import { DEFAULT_RESERVE_RATIO, RESERVE_RATIO_KEY } from './reserve-policy.ts';
  *  no commercial bank may register under it. */
 export const CENTRAL_BANK_NAME = 'Central bank';
 
+/** A claim as the balance sheet reports it: the raw row, whose
+ *  `borrower` is the bank's id, plus that bank's name to display beside
+ *  it. The id stays the id — a reader that needs the bank matches on
+ *  `borrower`, never on the label. */
+export interface BalanceSheetClaim extends Claim {
+  borrowerName: string;
+}
+
 export interface CentralBankBalanceSheet {
   /** Liabilities: the banks' reserve accounts. */
   reserveAccounts: CentralBankAccount[];
-  /** Assets: outstanding claims on the banks. The raw table keys the
-   *  borrower by bank id; here it carries the bank's name as label. */
-  claims: Claim[];
+  /** Assets: outstanding claims on the banks, keyed by bank id and
+   *  carrying the bank's name for display. */
+  claims: BalanceSheetClaim[];
   totalReserves: Big;
   totalClaims: Big;
   /** The central bank's own account's balance — its accumulated interest
@@ -215,7 +226,12 @@ export class CentralBank implements CentralBankApi {
    * Record the new bank in the central bank's database: one row in the
    * register (the list of licensed banks) and one reserve account (the
    * bank's money held at the central bank), created together in one
-   * transaction. A name already in the register is refused with
+   * transaction — a crash must never leave a registered bank without its
+   * reserve account. The reserve account carries the bank's BIC, the
+   * identity in the payment system that this license just created;
+   * `bicFor` (bank-identity.ts) derives it from the bank's id, and every
+   * later operation finds the account by it — the name beside it is only
+   * a label. A name already in the register is refused with
    * DuplicateBankNameError — the signature promises it. The repository
    * methods you need are on centralBankDb — the Database tab lists them.
    */
@@ -404,7 +420,7 @@ export class CentralBank implements CentralBankApi {
     const centralBankDb = this.centralBankDb;
     return Effect.gen(function* () {
       const ownAccount = yield* Effect.promise(() =>
-        centralBankDb.accounts.getByOwner({ owner: CENTRAL_BANK_NAME })
+        centralBankDb.accounts.getByBic({ bic: CENTRAL_BANK_BIC })
       );
       const accounts = yield* Effect.promise(() =>
         centralBankDb.accounts.list()
@@ -421,7 +437,7 @@ export class CentralBank implements CentralBankApi {
       const nameById = new Map(banks.map(bank => [String(bank.id), bank.name]));
       const claims = rawClaims.map(claim => ({
         ...claim,
-        borrower: nameById.get(claim.borrower) ?? claim.borrower,
+        borrowerName: nameById.get(claim.borrower) ?? claim.borrower,
       }));
       const zero = new Big(0);
       return {
@@ -606,13 +622,13 @@ export class CentralBank implements CentralBankApi {
     const centralBankDb = this.centralBankDb;
     return Effect.gen(function* () {
       const existing = yield* Effect.promise(() =>
-        centralBankDb.accounts.getByOwner({ owner: CENTRAL_BANK_NAME })
+        centralBankDb.accounts.getByBic({ bic: CENTRAL_BANK_BIC })
       );
       if (existing) return existing;
       return yield* Effect.promise(() =>
         centralBankDb.accounts.create({
           owner: CENTRAL_BANK_NAME,
-          number: CENTRAL_BANK_BIC,
+          bic: CENTRAL_BANK_BIC,
         })
       );
     });
@@ -629,7 +645,7 @@ export class CentralBank implements CentralBankApi {
     const centralBankDb = this.centralBankDb;
     return Effect.gen(function* () {
       const account = yield* Effect.promise(() =>
-        centralBankDb.accounts.getByOwner({ owner: bank.name })
+        centralBankDb.accounts.getByBic({ bic: bicFor(bank.id) })
       );
       if (!account) {
         return yield* Effect.dieMessage(

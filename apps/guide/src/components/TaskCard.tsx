@@ -7,7 +7,7 @@ import {
   Lightbulb,
   SquarePen,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 
 import { runTests } from '../api.ts';
 
@@ -197,23 +197,28 @@ export function TaskCard({
           </p>
         )}
 
-        {/* The story's detail, where it has one: a lead-in and one
-            business requirement per bullet — the prompt's next
-            paragraph, same prose voice and size as the story. */}
-        {task.requirements && (
-          <>
-            <p className="mt-3 text-base leading-relaxed">
-              <CurriculumText text={task.requirements.intro} />
-            </p>
-            <ul className="mt-1.5 list-disc space-y-1 pl-6 text-base leading-relaxed marker:text-muted">
-              {task.requirements.items.map(requirement => (
-                <li key={requirement}>
-                  <CurriculumText text={requirement} />
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
+        {/* The story's detail, where it has one: first what the
+            operation means in the world, then what the code records to
+            make it so — two blocks in that order, each a lead-in and its
+            bullets, in the prompt's prose voice and size. Neither is
+            titled: the lead-in sentence is what marks the turn from the
+            domain to the work, the way the prose itself would. */}
+        {[task.requirements, task.implementation]
+          .filter(block => block !== null)
+          .map(block => (
+            <Fragment key={block.intro}>
+              <p className="mt-3 text-base leading-relaxed">
+                <CurriculumText text={block.intro} />
+              </p>
+              <ul className="mt-1.5 list-disc space-y-1 pl-6 text-base leading-relaxed marker:text-muted">
+                {block.items.map(item => (
+                  <li key={item}>
+                    <CurriculumText text={item} />
+                  </li>
+                ))}
+              </ul>
+            </Fragment>
+          ))}
 
         {/* A task with an attached concept teaches it right where it is
             applied: the explainer card sits between the prompt and the

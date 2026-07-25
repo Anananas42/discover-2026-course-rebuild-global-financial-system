@@ -32,8 +32,16 @@ export interface CurriculumTask {
    *  requirement per bullet — rendered as the story's next paragraph,
    *  same voice, same size. Only where the story would otherwise pack
    *  several obligations into one sentence; most tasks read fine as the
-   *  story alone. */
+   *  story alone. Domain only: what is true in the world once the
+   *  operation runs, never what the code writes to say so. */
   requirements?: { intro: string; items: string[] };
+  /** What the code has to record for those requirements to hold — rows,
+   *  values, and the helpers that produce them. A block of its own,
+   *  after `requirements` and in the same voice, because the domain is
+   *  one thing to understand and the work is another: a bullet carrying
+   *  both teaches neither well. Neither block is titled — its lead-in
+   *  sentence is what marks the turn. */
+  implementation?: { intro: string; items: string[] };
   /** How to walk the story by hand, in order — in the financial system
    *  from stage 1 on; stage 0 walks the code and the guide itself.
    *  Written for the moment the task lands: they only use operations
@@ -74,7 +82,7 @@ export interface CurriculumStage {
 
 /** Task ids by name, for the UI surfaces they unlock. */
 export const TASK = {
-  goLive: '0.8',
+  goLive: '0.9',
   openBank: '1.1',
   recordCentralBankNotice: '2.1',
   lendToBank: '2.2',
@@ -111,7 +119,7 @@ export const CURRICULUM: CurriculumStage[] = [
     intro:
       'Welcome to headquarters. Before the rebuild begins, this briefing drills the handful of moves every later task uses: open a task, write a few lines of code, run its tests.',
     introPayoff:
-      "Finish all seven and your country's financial system unlocks.",
+      "Finish all eight and your country's financial system unlocks.",
     outcome: '',
     tasks: [
       {
@@ -136,15 +144,6 @@ export const CURRICULUM: CurriculumStage[] = [
       {
         id: '0.3',
         story:
-          "Read the central bank's own account balance from a repository and hand back the answer untouched.",
-        steps: [
-          'Read the explainer above.',
-          'One line: return what centralBankRepo.ownAccountBalance() gives you.',
-        ],
-      },
-      {
-        id: '0.4',
-        story:
           "Relay headquarters' status — your first method built on the Effect frame.",
         steps: [
           'Read the explainer above.',
@@ -152,15 +151,7 @@ export const CURRICULUM: CurriculumStage[] = [
         ],
       },
       {
-        id: '0.5',
-        story:
-          "Wait for headquarters' instructions — an answer that arrives later, as a Promise.",
-        steps: [
-          'Read the explainer above — the one pattern there is the solution.',
-        ],
-      },
-      {
-        id: '0.6',
+        id: '0.4',
         story: 'Refuse a negative amount with a named error.',
         steps: [
           'Read the explainer above.',
@@ -169,16 +160,44 @@ export const CURRICULUM: CurriculumStage[] = [
         ],
       },
       {
+        id: '0.5',
+        story:
+          "Read the central bank's own account balance from a repository and hand back the answer untouched.",
+        steps: [
+          'Read the explainer above.',
+          'One line: return what repo.ownAccountBalance() gives you — the Promise itself, which the next task teaches you to wait for.',
+        ],
+      },
+      {
+        id: '0.6',
+        story:
+          'Ask the same repository how many banks are licensed, and hand back the number itself — an answer that arrives later, as a Promise.',
+        steps: [
+          'Read the explainer above — the one pattern there is the solution.',
+          'The signature returns the count, not a Promise of one: the frame is where you wait.',
+        ],
+      },
+      {
         id: '0.7',
         story: 'Move an amount between two accounts in one transaction.',
         steps: [
           'Read the explainer above.',
-          'Write both new balances — minus the amount, plus the amount — inside one db.transaction call.',
+          'Write both new balances — minus the amount, plus the amount — through the tx that one db.transaction call hands you.',
           'Run the tests: one scenario cuts the power between the two writes and checks that nothing moved.',
         ],
       },
       {
         id: '0.8',
+        story:
+          'Open an account in the register, unless the name is already taken — read, check, write, the shape almost every task ahead has.',
+        steps: [
+          'Read the explainer above: it shows this shape written correctly, and the tempting version that refuses nothing.',
+          'Ask the register whether the name is taken, refuse a taken one with the error the signature names, and otherwise open the account.',
+          'Run the tests: one scenario checks the refusal, one checks that a refused name never reached the register.',
+        ],
+      },
+      {
+        id: '0.9',
         title: 'Report for duty',
         codeless: true,
         story:
@@ -203,16 +222,26 @@ export const CURRICULUM: CurriculumStage[] = [
         id: TASK.openBank,
         story:
           'As the central bank, I license a commercial bank into the rebuilt financial system.',
-        // The first real task spells its story out: one business
-        // requirement per bullet — each visible on the screens the
-        // steps walk. The bank's own side (its database, its own
-        // account) is deliberately absent: banks run their own systems,
+        // The first real task spells its story out twice over: what a
+        // license means in the world, then what the code writes so it
+        // does. Each requirement is visible on the screens the steps
+        // walk. The bank's own side (its database, its own account) is
+        // deliberately absent from both: banks run their own systems,
         // and prebuilt code brings them online when the license lands.
         requirements: {
-          intro: 'Licensing a commercial bank consists of the following steps:',
+          intro: 'Licensing is what brings a commercial bank into being:',
           items: [
-            "Register the bank in the register of commercial banks — the central bank's list of who is licensed to operate.",
-            "Open the bank's reserve account — its money held at the central bank — in the central bank's database.",
+            "The bank is entered in the register of commercial banks — the central bank's list of who may operate.",
+            'The bank gets a reserve account — the money it keeps at the central bank.',
+            'The bank gets a BIC — its identity in the payment system.',
+          ],
+        },
+        implementation: {
+          intro:
+            "Recording the license writes two rows in the central bank's database, and a crash must never leave one without the other:",
+          items: [
+            'The register row — creating it is what gives the bank its id.',
+            "The reserve account, carrying that bank's BIC: bicFor (bank-identity.ts, already imported in the file) takes the new id and returns the BIC. It is the account's identity — every later operation finds it by that, never by the name.",
           ],
         },
         steps: [

@@ -2,7 +2,9 @@
 // accounts and the central bank's own account. Only institutions bank
 // at the central bank — no persons — so nothing here speaks of personal
 // ids: not this API, and not the table itself (it has no person_id
-// column); accounts are held and found by the institution's name.
+// column). An account is found by its holder's BIC, the identity the
+// register issued it; `owner` is a display label and nothing more,
+// exactly as a person's name is on a commercial account.
 
 import type Big from 'big.js';
 import type { Kysely } from 'kysely';
@@ -13,10 +15,10 @@ import { Repo } from './repo.ts';
 
 export interface CentralBankAccount {
   id: number;
-  /** The externally visible, randomly issued account number. */
-  number: string;
-  /** The holding institution's name — a bank's, or the central bank's
-   *  own reserved label. */
+  /** The holding institution's BIC — what identifies this account. */
+  bic: string;
+  /** The holding institution's display name — a bank's, or the central
+   *  bank's own reserved label. A label: never look a row up by it. */
   owner: string;
   balance: Big;
 }
@@ -41,31 +43,28 @@ export class CentralBankAccountRepo extends Repo {
    *  account, or the central bank's own. */
   async create({
     owner,
-    number,
+    bic,
   }: {
     owner: string;
-    number: string;
+    bic: string;
   }): Promise<CentralBankAccount> {
     const row = await this.table
       .insertInto('accounts')
-      .values({ owner, number, balance: '0' })
+      .values({ owner, bic, balance: '0' })
       .returningAll()
       .executeTakeFirstOrThrow();
     return { ...row, balance: this.toMajor(row.balance) };
   }
 
-  async getByOwner({
-    owner,
+  async getByBic({
+    bic,
   }: {
-    owner: string;
+    bic: string;
   }): Promise<CentralBankAccount | undefined> {
     const row = await this.table
       .selectFrom('accounts')
       .selectAll()
-      .where('owner', '=', owner)
-      // Deterministic pick: without an order, Postgres returns heap
-      // order, which changes as rows are updated.
-      .orderBy('id')
+      .where('bic', '=', bic)
       .executeTakeFirst();
     return row && { ...row, balance: this.toMajor(row.balance) };
   }

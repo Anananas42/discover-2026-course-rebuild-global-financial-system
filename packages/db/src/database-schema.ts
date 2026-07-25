@@ -48,10 +48,14 @@ export interface AccountsTable {
  *  does. */
 export interface CentralBankAccountsTable {
   id: Generated<number>;
-  /** The externally visible account number — random, issued by the
-   *  central bank; the serial id stays internal. */
-  number: string;
-  /** The holding institution's name. */
+  /** The holding institution's BIC — its identity in the payment
+   *  system, issued by the central bank's register and derived from the
+   *  institution's id (bank-identity.ts). This is what identifies the
+   *  account: institutions bank here under the identity the register
+   *  gave them, never under a name they could change. */
+  bic: string;
+  /** The holding institution's display name — a label, like a person's
+   *  name on a commercial account. Never used to find a row. */
   owner: string;
   /** Balance in minor units; bigint column, string on the wire. */
   balance: string;
@@ -143,17 +147,31 @@ async function ensureInstitutionTables(
     await sql`
       CREATE TABLE IF NOT EXISTS ${sql.id(schema)}.accounts (
         id serial PRIMARY KEY,
-        number text NOT NULL DEFAULT '0',
+        bic text NOT NULL DEFAULT '0',
         owner text NOT NULL,
         balance bigint NOT NULL DEFAULT 0
       )`.execute(db);
+    // The central bank's accounts were once numbered like a client's,
+    // in a `number` column, though the value was always the BIC. The
+    // rename carries those values over: same identities, named for what
+    // they are.
+    const columns = await sql<{ columnName: string }>`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_schema = ${schema} AND table_name = 'accounts'
+        AND column_name IN ('number', 'bic')`.execute(db);
+    const present = new Set(columns.rows.map(row => row.columnName));
+    if (present.has('number') && !present.has('bic')) {
+      await sql`
+        ALTER TABLE ${sql.id(schema)}.accounts
+        RENAME COLUMN number TO bic`.execute(db);
+    }
   }
   // Idempotent catch-ups for databases created before a column changed;
   // accounts opened back then keep the defaults until the data is reset.
-  await sql`
-    ALTER TABLE ${sql.id(schema)}.accounts
-    ADD COLUMN IF NOT EXISTS number text NOT NULL DEFAULT '0'`.execute(db);
   if (personAccounts) {
+    await sql`
+      ALTER TABLE ${sql.id(schema)}.accounts
+      ADD COLUMN IF NOT EXISTS number text NOT NULL DEFAULT '0'`.execute(db);
     await sql`
       ALTER TABLE ${sql.id(schema)}.accounts
       ADD COLUMN IF NOT EXISTS person_id text NOT NULL DEFAULT ''`.execute(db);
