@@ -197,6 +197,7 @@ export class CentralBank implements CentralBankApi {
     InvalidBankNameError | DuplicateBankNameError
   > {
     const commercialBanks = this.connectedCommercialBanks();
+    const requireUnusedLegalName = this.requireUnusedLegalName.bind(this);
     const recordNewBank = this.recordNewBank.bind(this);
     const legalName = input.legalName.trim();
     return Effect.gen(function* () {
@@ -216,12 +217,36 @@ export class CentralBank implements CentralBankApi {
           })
         );
       }
+      yield* requireUnusedLegalName({ legalName });
       const bank = yield* recordNewBank({ legalName });
       yield* commercialBanks.connectBank({
         bankId: bank.id,
         legalName: bank.legalName,
       });
       return bank;
+    });
+  }
+
+  /**
+   * Refuses a legal name a bank already has, so no two banks can share
+   * one: `centralBankDb.commercialBanks.getByLegalName({ legalName })`
+   * answers whether a bank of that name exists. Refuse a taken name with
+   * DuplicateBankNameError — the signature promises it — and let any
+   * other name pass through.
+   *
+   * Nothing creates banks yet: that is the next task, and this check is
+   * what it will call first.
+   */
+  private requireUnusedLegalName(input: {
+    legalName: string;
+  }): Effect.Effect<void, DuplicateBankNameError> {
+    const { legalName } = input;
+    const centralBankDb = this.centralBankDb;
+    return Effect.gen(function* () {
+      // TASK 1.1: Refuse a bank name that already exists
+      // TODO: implement task 1.1.
+      throw new NotImplementedError('1.1');
+      // ENDTASK 1.1
     });
   }
 
@@ -234,21 +259,20 @@ export class CentralBank implements CentralBankApi {
    * identity in the payment system that this license just created;
    * `bicFor` (bank-identity.ts) derives it from the bank's id, and every
    * later operation finds the account by it — the legal name beside it
-   * is display text. A legal name already in the register is refused
-   * with DuplicateBankNameError — the signature promises it, and a
-   * register is where a name is unique. The repository methods you need
-   * are on centralBankDb — the Database tab lists them.
+   * is display text. The name was cleared by the previous task before
+   * this one is reached. The repository methods you need are on
+   * centralBankDb — the Database tab lists them.
    */
   private recordNewBank(input: {
     legalName: string;
-  }): Effect.Effect<CommercialBank, DuplicateBankNameError> {
+  }): Effect.Effect<CommercialBank> {
     const { legalName } = input;
     const centralBankDb = this.centralBankDb;
     return Effect.gen(function* () {
-      // TASK 1.1: License a new commercial bank
-      // TODO: implement task 1.1.
-      throw new NotImplementedError('1.1');
-      // ENDTASK 1.1
+      // TASK 1.2: License a new commercial bank
+      // TODO: implement task 1.2.
+      throw new NotImplementedError('1.2');
+      // ENDTASK 1.2
     });
   }
 

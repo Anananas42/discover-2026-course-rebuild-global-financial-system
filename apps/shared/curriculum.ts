@@ -83,7 +83,8 @@ export interface CurriculumStage {
 /** Task ids by name, for the UI surfaces they unlock. */
 export const TASK = {
   goLive: '0.9',
-  openBank: '1.1',
+  refuseTakenBankName: '1.1',
+  openBank: '1.2',
   recordCentralBankNotice: '2.1',
   lendToBank: '2.2',
   receiveRepayment: '2.3',
@@ -218,11 +219,30 @@ export const CURRICULUM: CurriculumStage[] = [
     outcome:
       'The central bank licenses commercial banks; every balance reads zero.',
     tasks: [
+      // Stage 1 arrives in two steps. The name check is one small piece
+      // of code — the read-check-refuse shape of briefing task 0.8, met
+      // again against a real database — and it is finished and green
+      // before the writing task, where everything new in this stage
+      // lives. A red suite then says one thing at a time: the check, or
+      // the write. The shape returns prebuilt from 5.1 on
+      // (requireClientName and friends); this is where it is written by
+      // hand. This task builds a tool, so its story is in the
+      // briefing's imperative voice, not the "As the central bank" of
+      // the tasks that do something in the world.
+      {
+        id: TASK.refuseTakenBankName,
+        story:
+          'Before there is a way to create a bank, build the check it needs: an error when a bank of that name already exists.',
+        steps: [
+          'This answers whether a bank of that name exists:\n```\ncentralBankDb.commercialBanks.getByLegalName({ legalName })\n```',
+          'Refuse a taken name with the error the signature names, and let every other name through.',
+        ],
+      },
       {
         id: TASK.openBank,
         story:
           'As the central bank, I license a commercial bank into the rebuilt financial system.',
-        // The first real task spells its story out twice over: what a
+        // The stage's second task spells its story out twice over: what a
         // license means in the world, then what the code writes so it
         // does. Each requirement is visible on the screens the steps
         // walk. The bank's own side (its database, its own account) is
@@ -231,7 +251,7 @@ export const CURRICULUM: CurriculumStage[] = [
         requirements: {
           intro: 'Licensing is what brings a commercial bank into being:',
           items: [
-            "The bank is entered in the register of commercial banks — the central bank's list of who may operate, under a legal name no other bank holds.",
+            "The bank is entered in the register of commercial banks — the central bank's list of who may operate.",
             'The bank gets a reserve account — the money it keeps at the central bank.',
             'The bank gets a BIC — its identity in the payment system.',
           ],

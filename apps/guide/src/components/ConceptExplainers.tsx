@@ -7,13 +7,14 @@ import { TASK } from '@banks/shared/curriculum.ts';
 
 import { FinancialSystemLink } from './CurriculumText.tsx';
 
-// The onramp explainers: the concepts task 1.1 would otherwise need all
+// The onramp explainers: the concepts stage 1 would otherwise need all
 // at once, each taught as a card inside the stage-0 task that applies it
 // — introduced and instantly used, never a wall of theory upfront. The
 // last of them teaches no new piece, only how the earlier ones sit in
-// one method, which is the shape every task from 1.1 on has. One more
-// card sits on task 1.1 itself: how to work in the financial system,
-// taught on the first task that happens there. Every card carries a
+// one method, which is the shape every task from stage 1 on has. One
+// more card sits on task 1.2: how to work in the financial system,
+// taught on the first task that happens there — 1.1 builds a check
+// with no screen of its own. Every card carries a
 // mark-as-read button (the task-test idiom: quiet until clicked, green
 // after) — the click changes nothing but is a conscious act of having
 // read. Read-state is a display preference like the theme — per

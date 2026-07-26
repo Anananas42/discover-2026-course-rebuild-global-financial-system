@@ -12,7 +12,6 @@
     "play": "node playground.ts",
     "prepare": "simple-git-hooks",
     "pull-course": "node pull-course.ts",
-    "reset-dashboard": "node scripts/reset-dashboard.ts",
     "setup-personal-repo": "node setup-personal-repo.ts",
     "start": "node apps/guide/start.ts",
     "submit": "node submit.ts",

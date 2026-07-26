@@ -205,7 +205,7 @@ export class CommercialBanks implements LicensedBanks, ReceivingBank {
    * is created and its own account opened in it — where its income will
    * accumulate and what it will spend from: its equity. Prebuilt, not a
    * task: this is the bank's own IT at work; the central bank triggers
-   * it over the notice channel at the end of every licensing (task 1.1).
+   * it over the notice channel at the end of every licensing (task 1.2).
    */
   connectBank(input: {
     bankId: number;

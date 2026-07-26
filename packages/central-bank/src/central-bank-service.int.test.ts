@@ -43,7 +43,43 @@ afterAll(async () => {
   await system.destroy();
 });
 
-describe('task 1.1: licensing a new commercial bank', () => {
+describe('task 1.1: refusing a bank name that already exists', () => {
+  // The bank goes into the table directly, not through the code that
+  // creates banks: this task is the check on its own, and it has to be
+  // gradeable before that code exists.
+  it('refuses a name a bank already has', async () => {
+    await system.centralBank.commercialBanks.create({
+      legalName: 'First Bank',
+    });
+    const error = await Effect.runPromise(
+      Effect.flip(centralBank.registerBank({ legalName: 'First Bank' }))
+    );
+    expect(error).toBeInstanceOf(DuplicateBankNameError);
+  });
+
+  it('lets through a name no bank has', async () => {
+    await system.centralBank.commercialBanks.create({
+      legalName: 'First Bank',
+    });
+    // What happens to a free name after the check is the next task's
+    // business; being turned away as a duplicate is the only outcome
+    // this task can get wrong. `either` turns that refusal into a value,
+    // so a name that gets past the check lands in the second arm
+    // whether or not there is anything yet to create the bank.
+    const outcome = await Effect.runPromise(
+      Effect.either(centralBank.registerBank({ legalName: 'Second Bank' }))
+    ).then(
+      result =>
+        result._tag === 'Left' && result.left instanceof DuplicateBankNameError
+          ? 'refused'
+          : 'passed the check',
+      () => 'passed the check'
+    );
+    expect(outcome).toBe('passed the check');
+  });
+});
+
+describe('task 1.2: licensing a new commercial bank', () => {
   it('registers a bank and opens its reserve account', async () => {
     const bank = await Effect.runPromise(
       centralBank.registerBank({ legalName: 'First Bank' })
@@ -65,16 +101,6 @@ describe('task 1.1: licensing a new commercial bank', () => {
     // The empty personal id marks an institution's own account.
     expect(accounts[0]?.personId).toBe('');
     expect(accounts[0]?.balance.eq(0)).toBe(true);
-  });
-
-  it('rejects a duplicate bank name', async () => {
-    await Effect.runPromise(
-      centralBank.registerBank({ legalName: 'First Bank' })
-    );
-    const error = await Effect.runPromise(
-      Effect.flip(centralBank.registerBank({ legalName: 'First Bank' }))
-    );
-    expect(error).toBeInstanceOf(DuplicateBankNameError);
   });
 
   it("identifies each reserve account by the bank's BIC", async () => {
@@ -128,8 +154,9 @@ describe('task 1.1: licensing a new commercial bank', () => {
   });
 });
 
-// Prebuilt name hygiene in registerBank — not part of task 1.1, so no
-// `task <id>` in the describe name: these pass with the stub in place.
+// Prebuilt name hygiene in registerBank — not part of either stage-1
+// task, so no `task <id>` in the describe name: these pass with the
+// stubs in place.
 describe('the licensing name check', () => {
   it('rejects "Central Bank" as a name, in any casing', async () => {
     const error = await Effect.runPromise(
