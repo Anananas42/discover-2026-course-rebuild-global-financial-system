@@ -46,47 +46,49 @@ afterAll(async () => {
 describe('task 1.1: licensing a new commercial bank', () => {
   it('registers a bank and opens its reserve account', async () => {
     const bank = await Effect.runPromise(
-      centralBank.registerBank({ name: 'First Bank' })
+      centralBank.registerBank({ legalName: 'First Bank' })
     );
-    expect(bank.name).toBe('First Bank');
+    expect(bank.legalName).toBe('First Bank');
     const books = await Effect.runPromise(centralBank.balanceSheet());
     expect(books.reserveAccounts).toHaveLength(1);
-    expect(books.reserveAccounts[0]?.owner).toBe('First Bank');
+    expect(books.reserveAccounts[0]?.legalName).toBe('First Bank');
     expect(books.reserveAccounts[0]?.balance.eq(0)).toBe(true);
   });
 
   it("the bank's own database comes online with its own account in it", async () => {
     const bank = await Effect.runPromise(
-      centralBank.registerBank({ name: 'First Bank' })
+      centralBank.registerBank({ legalName: 'First Bank' })
     );
     const accounts = await system.commercialBank(bank.id).accounts.list();
     expect(accounts).toHaveLength(1);
-    expect(accounts[0]?.owner).toBe('First Bank');
+    expect(accounts[0]?.ownerName).toBe('First Bank');
     // The empty personal id marks an institution's own account.
     expect(accounts[0]?.personId).toBe('');
     expect(accounts[0]?.balance.eq(0)).toBe(true);
   });
 
   it('rejects a duplicate bank name', async () => {
-    await Effect.runPromise(centralBank.registerBank({ name: 'First Bank' }));
+    await Effect.runPromise(
+      centralBank.registerBank({ legalName: 'First Bank' })
+    );
     const error = await Effect.runPromise(
-      Effect.flip(centralBank.registerBank({ name: 'First Bank' }))
+      Effect.flip(centralBank.registerBank({ legalName: 'First Bank' }))
     );
     expect(error).toBeInstanceOf(DuplicateBankNameError);
   });
 
   it("identifies each reserve account by the bank's BIC", async () => {
     const first = await Effect.runPromise(
-      centralBank.registerBank({ name: 'First Bank' })
+      centralBank.registerBank({ legalName: 'First Bank' })
     );
     const second = await Effect.runPromise(
-      centralBank.registerBank({ name: 'Second Bank' })
+      centralBank.registerBank({ legalName: 'Second Bank' })
     );
     const books = await Effect.runPromise(centralBank.balanceSheet());
     // Each account carries the BIC of the bank it belongs to — the name
     // beside it is a label, so the BIC is what has to match.
     const byBic = new Map(
-      books.reserveAccounts.map(account => [account.bic, account.owner])
+      books.reserveAccounts.map(account => [account.bic, account.legalName])
     );
     expect(byBic.get(bicFor(first.id))).toBe('First Bank');
     expect(byBic.get(bicFor(second.id))).toBe('Second Bank');
@@ -110,7 +112,7 @@ describe('task 1.1: licensing a new commercial bank', () => {
       const broken = new CentralBank(crashed.centralBankDb);
       new CommercialBanks(crashed.commercialBankDb, broken);
       const outcome = await Effect.runPromise(
-        broken.registerBank({ name: 'First Bank' })
+        broken.registerBank({ legalName: 'First Bank' })
       ).then(
         () => 'succeeded',
         () => 'crashed'
@@ -131,7 +133,7 @@ describe('task 1.1: licensing a new commercial bank', () => {
 describe('the licensing name check', () => {
   it('rejects "Central Bank" as a name, in any casing', async () => {
     const error = await Effect.runPromise(
-      Effect.flip(centralBank.registerBank({ name: 'central BANK' }))
+      Effect.flip(centralBank.registerBank({ legalName: 'central BANK' }))
     );
     expect(error).toBeInstanceOf(InvalidBankNameError);
   });
@@ -140,7 +142,7 @@ describe('the licensing name check', () => {
 describe('task 2.2: lending to a bank', () => {
   it('the bank receives the reserves and owes the amount plus interest', async () => {
     const bank = await Effect.runPromise(
-      centralBank.registerBank({ name: 'First Bank' })
+      centralBank.registerBank({ legalName: 'First Bank' })
     );
     const debt = await Effect.runPromise(
       centralBank.lendToBank({ bankId: bank.id, amount: new Big('4000') })
@@ -158,7 +160,7 @@ describe('task 2.2: lending to a bank', () => {
 
   it("the interest owed pushes the bank's own account below zero", async () => {
     const bank = await Effect.runPromise(
-      centralBank.registerBank({ name: 'First Bank' })
+      centralBank.registerBank({ legalName: 'First Bank' })
     );
     await Effect.runPromise(
       centralBank.lendToBank({ bankId: bank.id, amount: new Big('4000') })
@@ -180,7 +182,7 @@ describe('task 2.2: lending to a bank', () => {
 
   it('rejects a loan of zero', async () => {
     const bank = await Effect.runPromise(
-      centralBank.registerBank({ name: 'First Bank' })
+      centralBank.registerBank({ legalName: 'First Bank' })
     );
     const error = await Effect.runPromise(
       Effect.flip(
@@ -194,10 +196,10 @@ describe('task 2.2: lending to a bank', () => {
 describe('task 3.1: transferring reserves', () => {
   it('moves reserves between banks without changing the total', async () => {
     const first = await Effect.runPromise(
-      centralBank.registerBank({ name: 'First Bank' })
+      centralBank.registerBank({ legalName: 'First Bank' })
     );
     const second = await Effect.runPromise(
-      centralBank.registerBank({ name: 'Second Bank' })
+      centralBank.registerBank({ legalName: 'Second Bank' })
     );
     await Effect.runPromise(
       centralBank.lendToBank({ bankId: first.id, amount: new Big('4000') })
@@ -211,7 +213,7 @@ describe('task 3.1: transferring reserves', () => {
     );
     const books = await Effect.runPromise(centralBank.balanceSheet());
     const byOwner = new Map(
-      books.reserveAccounts.map(account => [account.owner, account.balance])
+      books.reserveAccounts.map(account => [account.legalName, account.balance])
     );
     expect(byOwner.get('First Bank')?.eq('3200')).toBe(true);
     expect(byOwner.get('Second Bank')?.eq('800')).toBe(true);
@@ -220,10 +222,10 @@ describe('task 3.1: transferring reserves', () => {
 
   it('rejects sending more reserves than the bank has', async () => {
     const first = await Effect.runPromise(
-      centralBank.registerBank({ name: 'First Bank' })
+      centralBank.registerBank({ legalName: 'First Bank' })
     );
     const second = await Effect.runPromise(
-      centralBank.registerBank({ name: 'Second Bank' })
+      centralBank.registerBank({ legalName: 'Second Bank' })
     );
     await Effect.runPromise(
       centralBank.lendToBank({ bankId: first.id, amount: new Big('100') })
@@ -243,7 +245,7 @@ describe('task 3.1: transferring reserves', () => {
 
   it('rejects a transfer from a bank to itself', async () => {
     const first = await Effect.runPromise(
-      centralBank.registerBank({ name: 'First Bank' })
+      centralBank.registerBank({ legalName: 'First Bank' })
     );
     const error = await Effect.runPromise(
       Effect.flip(
@@ -261,7 +263,7 @@ describe('task 3.1: transferring reserves', () => {
 describe('task 2.3: receiving repayments', () => {
   it('a repayment returns reserves and shrinks the debt by the same amount', async () => {
     const bank = await Effect.runPromise(
-      centralBank.registerBank({ name: 'First Bank' })
+      centralBank.registerBank({ legalName: 'First Bank' })
     );
     await Effect.runPromise(
       centralBank.lendToBank({ bankId: bank.id, amount: new Big('4000') })
@@ -278,7 +280,7 @@ describe('task 2.3: receiving repayments', () => {
 
   it('rejects repaying more than is owed', async () => {
     const bank = await Effect.runPromise(
-      centralBank.registerBank({ name: 'First Bank' })
+      centralBank.registerBank({ legalName: 'First Bank' })
     );
     await Effect.runPromise(
       centralBank.lendToBank({ bankId: bank.id, amount: new Big('100') })
@@ -298,7 +300,7 @@ describe('task 2.3: receiving repayments', () => {
 describe('task 3.2: paying a bank', () => {
   it("adds to the bank's reserves, paid from the central bank's earnings", async () => {
     const bank = await Effect.runPromise(
-      centralBank.registerBank({ name: 'First Bank' })
+      centralBank.registerBank({ legalName: 'First Bank' })
     );
     await Effect.runPromise(
       centralBank.lendToBank({ bankId: bank.id, amount: new Big('100') })
@@ -316,7 +318,7 @@ describe('task 3.2: paying a bank', () => {
 
   it('the interest owed can only be repaid after the central bank spends its earnings', async () => {
     const bank = await Effect.runPromise(
-      centralBank.registerBank({ name: 'First Bank' })
+      centralBank.registerBank({ legalName: 'First Bank' })
     );
     await Effect.runPromise(
       centralBank.lendToBank({ bankId: bank.id, amount: new Big('100') })
@@ -350,7 +352,7 @@ describe('task 3.2: paying a bank', () => {
 
   it('rejects paying more than the central bank has earned', async () => {
     const bank = await Effect.runPromise(
-      centralBank.registerBank({ name: 'First Bank' })
+      centralBank.registerBank({ legalName: 'First Bank' })
     );
     await Effect.runPromise(
       centralBank.lendToBank({ bankId: bank.id, amount: new Big('100') })
@@ -374,7 +376,7 @@ describe('task 3.2: paying a bank', () => {
 describe("task 2.4: writing off a bank's debt", () => {
   it('the central bank takes the loss and the bank keeps the reserves', async () => {
     const bank = await Effect.runPromise(
-      centralBank.registerBank({ name: 'First Bank' })
+      centralBank.registerBank({ legalName: 'First Bank' })
     );
     await Effect.runPromise(
       centralBank.lendToBank({ bankId: bank.id, amount: new Big('100') })
@@ -398,7 +400,7 @@ describe("task 2.4: writing off a bank's debt", () => {
 
   it('rejects writing off a bank that owes nothing', async () => {
     const bank = await Effect.runPromise(
-      centralBank.registerBank({ name: 'First Bank' })
+      centralBank.registerBank({ legalName: 'First Bank' })
     );
     const error = await Effect.runPromise(
       Effect.flip(centralBank.writeOffClaim({ bankId: bank.id }))
@@ -415,7 +417,7 @@ describe('task 2.5: setting the central bank interest rate', () => {
 
   it('a changed rate affects only new loans, not existing debts', async () => {
     const bank = await Effect.runPromise(
-      centralBank.registerBank({ name: 'First Bank' })
+      centralBank.registerBank({ legalName: 'First Bank' })
     );
     await Effect.runPromise(
       centralBank.lendToBank({ bankId: bank.id, amount: new Big('100') })
@@ -435,7 +437,7 @@ describe('task 2.5: setting the central bank interest rate', () => {
 
   it('can be zero, making borrowing free', async () => {
     const bank = await Effect.runPromise(
-      centralBank.registerBank({ name: 'First Bank' })
+      centralBank.registerBank({ legalName: 'First Bank' })
     );
     await Effect.runPromise(centralBank.setPolicyRate({ percent: '0' }));
     const debt = await Effect.runPromise(
@@ -448,7 +450,7 @@ describe('task 2.5: setting the central bank interest rate', () => {
 
   it('a negative rate makes the bank owe back less than it borrowed', async () => {
     const bank = await Effect.runPromise(
-      centralBank.registerBank({ name: 'First Bank' })
+      centralBank.registerBank({ legalName: 'First Bank' })
     );
     await Effect.runPromise(centralBank.setPolicyRate({ percent: '-1' }));
     const debt = await Effect.runPromise(

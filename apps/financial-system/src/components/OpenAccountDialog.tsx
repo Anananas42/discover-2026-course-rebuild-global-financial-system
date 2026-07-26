@@ -19,7 +19,8 @@ import { OperationDialog } from './OperationDialog.tsx';
 
 interface Bank {
   id: number;
-  name: string;
+  /** The name the bank is licensed under. */
+  legalName: string;
 }
 
 export function OpenAccountDialog({
@@ -51,7 +52,7 @@ export function OpenAccountDialog({
           bankId: selected.id,
           personId: person.personId,
         });
-        return `Opened another account for ${person.name} at ${selected.name}.`;
+        return `Opened another account for ${person.name} at ${selected.legalName}.`;
       }}
     >
       {banks.length === 0 ? (
@@ -67,7 +68,7 @@ export function OpenAccountDialog({
             <SelectContent>
               {banks.map(bank => (
                 <SelectItem key={bank.id} value={String(bank.id)}>
-                  {bank.name}
+                  {bank.legalName}
                 </SelectItem>
               ))}
             </SelectContent>

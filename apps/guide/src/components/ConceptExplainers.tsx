@@ -185,12 +185,12 @@ const EXPLAINERS: Record<ConceptId, { title: string; body: ReactNode }> = {
         </p>
         <pre className="overflow-x-auto rounded-lg border border-line bg-faint p-3 font-mono text-[13px] leading-relaxed">
           {`const taken = yield* Effect.promise(() =>
-  register.isNameTaken({ name })
+  register.isNameTaken({ legalName })
 );
 if (taken) {
-  return yield* Effect.fail(new AccountExistsError({ name }));
+  return yield* Effect.fail(new DuplicateBankNameError({ legalName }));
 }
-return yield* Effect.promise(() => register.open({ name }));`}
+return yield* Effect.promise(() => register.license({ legalName }));`}
         </pre>
         <p>
           Each call that returns a Promise gets its own{' '}
@@ -205,11 +205,11 @@ return yield* Effect.promise(() => register.open({ name }));`}
         </p>
         <pre className="overflow-x-auto rounded-lg border border-line bg-faint p-3 font-mono text-[13px] leading-relaxed">
           {`return yield* Effect.promise(async () => {
-  if (await register.isNameTaken({ name })) {
+  if (await register.isNameTaken({ legalName })) {
     // Nothing here says no — read on.
-    return Effect.fail(new AccountExistsError({ name }));
+    return Effect.fail(new DuplicateBankNameError({ legalName }));
   }
-  return await register.open({ name });
+  return await register.license({ legalName });
 });`}
         </pre>
         <p>
@@ -219,10 +219,10 @@ return yield* Effect.promise(() => register.open({ name }));`}
           <Code>async</Code> function you cannot write <Code>yield*</Code> — so
           that refusal becomes an ordinary return value. The Promise finishes
           with it, <Code>Effect.promise</Code> treats it as the answer, and the
-          caller is told the account was opened.
+          caller is told the bank was licensed.
         </p>
         <p>
-          Here TypeScript catches it, because a refusal is not the account the
+          Here TypeScript catches it, because a refusal is not the bank the
           signature promises. Take the red squiggle as the reminder: the check
           belongs in the method, between the two waits.
         </p>
@@ -267,12 +267,12 @@ return yield* Effect.promise(() => register.open({ name }));`}
         <pre className="overflow-x-auto rounded-lg border border-line bg-faint p-3 font-mono text-[13px] leading-relaxed">
           {`db.transaction(async tx => {
   await tx.setBalance({
-    account: from.name,
+    id: from.id,
     balance: from.balance.minus(amount),
   });
   // <-- the program could die right here — e.g. due to a power outage
   await tx.setBalance({
-    account: to.name,
+    id: to.id,
     balance: to.balance.plus(amount),
   });
 });`}

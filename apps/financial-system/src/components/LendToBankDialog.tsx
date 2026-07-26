@@ -9,7 +9,8 @@ import { OperationDialog } from './OperationDialog.tsx';
 
 interface Bank {
   id: number;
-  name: string;
+  /** The name the bank is licensed under. */
+  legalName: string;
 }
 
 export function LendToBankDialog({
@@ -44,7 +45,7 @@ export function LendToBankDialog({
           amount,
         });
         setAmount('');
-        return `Lent ${formatMoney(amount)} ${currency} to ${selected.name} — reserves credited; with ${percent} interest, it now owes ${formatMoney(totalDebt)} ${currency}.`;
+        return `Lent ${formatMoney(amount)} ${currency} to ${selected.legalName} — reserves credited; with ${percent} interest, it now owes ${formatMoney(totalDebt)} ${currency}.`;
       }}
     >
       {banks.length === 0 ? (
@@ -61,7 +62,7 @@ export function LendToBankDialog({
             >
               {banks.map(bank => (
                 <option key={bank.id} value={bank.id}>
-                  {bank.name}
+                  {bank.legalName}
                 </option>
               ))}
             </select>

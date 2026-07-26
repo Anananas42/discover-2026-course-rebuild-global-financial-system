@@ -89,10 +89,10 @@ export class ReserveRequirementError extends Data.TaggedError(
 
 export class InsufficientFundsError extends Data.TaggedError(
   'InsufficientFundsError'
-)<{ owner: string; balance: string; requested: string }> {
+)<{ ownerName: string; balance: string; requested: string }> {
   override get message(): string {
     return (
-      `${this.owner}'s account holds ${this.balance} ${CURRENCY.code} — ` +
+      `${this.ownerName}'s account holds ${this.balance} ${CURRENCY.code} — ` +
       `cannot pay ${this.requested} ${CURRENCY.code}.`
     );
   }

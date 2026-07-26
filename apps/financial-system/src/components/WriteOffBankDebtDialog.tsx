@@ -22,7 +22,8 @@ import { OperationDialog } from './OperationDialog.tsx';
 
 interface Bank {
   id: number;
-  name: string;
+  /** The name the bank is licensed under. */
+  legalName: string;
 }
 
 interface ClaimRow {
@@ -36,11 +37,12 @@ export function WriteOffBankDebtDialog({
   currency,
 }: {
   banks: Bank[];
-  /** The central bank's outstanding claims, keyed by bank name. */
+  /** The central bank's outstanding claims, keyed by bank id. */
   claims: ClaimRow[];
   currency: string;
 }) {
-  const [borrower, setBorrower] = useState('');
+  /** The chosen debtor's bank id, as the claims themselves key it. */
+  const [borrowerId, setBorrowerId] = useState('');
 
   const debtors = claims.flatMap(claim => {
     const bank = banks.find(
@@ -49,7 +51,7 @@ export function WriteOffBankDebtDialog({
     return bank ? [{ bank, amount: claim.amount }] : [];
   });
   const selected =
-    debtors.find(debtor => debtor.bank.name === borrower) ?? debtors[0];
+    debtors.find(debtor => String(debtor.bank.id) === borrowerId) ?? debtors[0];
 
   return (
     <OperationDialog
@@ -66,8 +68,8 @@ export function WriteOffBankDebtDialog({
         const { writtenOff } = await api.centralBank.writeOffClaim.mutate({
           bankId: selected.bank.id,
         });
-        const narration = `Wrote off ${selected.bank.name}'s debt of ${formatMoney(writtenOff)} ${currency} — the central bank's equity took the loss; the forgiven amount is the bank's gain.`;
-        setBorrower('');
+        const narration = `Wrote off ${selected.bank.legalName}'s debt of ${formatMoney(writtenOff)} ${currency} — the central bank's equity took the loss; the forgiven amount is the bank's gain.`;
+        setBorrowerId('');
         return narration;
       }}
     >
@@ -78,14 +80,17 @@ export function WriteOffBankDebtDialog({
         </p>
       ) : (
         <Field label="bank">
-          <Select value={selected?.bank.name ?? ''} onValueChange={setBorrower}>
+          <Select
+            value={selected ? String(selected.bank.id) : ''}
+            onValueChange={setBorrowerId}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {debtors.map(debtor => (
-                <SelectItem key={debtor.bank.id} value={debtor.bank.name}>
-                  {debtor.bank.name}{' '}
+                <SelectItem key={debtor.bank.id} value={String(debtor.bank.id)}>
+                  {debtor.bank.legalName}{' '}
                   <span className="text-muted">
                     (owes {formatMoney(debtor.amount)} {currency})
                   </span>

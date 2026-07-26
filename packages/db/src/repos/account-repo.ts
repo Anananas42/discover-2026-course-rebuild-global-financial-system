@@ -10,24 +10,25 @@ export interface Account {
   number: string;
   /** The holder's personal id; empty for institutions' own accounts. */
   personId: string;
-  /** The holder's display name — a label; people may share it. */
-  owner: string;
+  /** The holder's name as printed on the account — display text. Two
+   *  accounts may carry the same one, and a holder can change theirs. */
+  ownerName: string;
   balance: Big;
 }
 
 export class AccountRepo extends Repo {
   async create({
-    owner,
+    ownerName,
     number,
     personId,
   }: {
-    owner: string;
+    ownerName: string;
     number: string;
     personId: string;
   }): Promise<Account> {
     const row = await this.scoped()
       .insertInto('accounts')
-      .values({ owner, number, personId, balance: '0' })
+      .values({ ownerName, number, personId, balance: '0' })
       .returningAll()
       .executeTakeFirstOrThrow();
     return { ...row, balance: this.toMajor(row.balance) };
@@ -65,18 +66,6 @@ export class AccountRepo extends Repo {
     return row && { ...row, balance: this.toMajor(row.balance) };
   }
 
-  async getByOwner({ owner }: { owner: string }): Promise<Account | undefined> {
-    const row = await this.scoped()
-      .selectFrom('accounts')
-      .selectAll()
-      .where('owner', '=', owner)
-      // Deterministic pick: without an order, Postgres returns heap
-      // order, which changes as rows are updated.
-      .orderBy('id')
-      .executeTakeFirst();
-    return row && { ...row, balance: this.toMajor(row.balance) };
-  }
-
   async list(): Promise<Account[]> {
     const rows = await this.scoped()
       .selectFrom('accounts')
@@ -100,10 +89,16 @@ export class AccountRepo extends Repo {
       .execute();
   }
 
-  async setOwner({ id, owner }: { id: number; owner: string }): Promise<void> {
+  async setOwnerName({
+    id,
+    ownerName,
+  }: {
+    id: number;
+    ownerName: string;
+  }): Promise<void> {
     await this.scoped()
       .updateTable('accounts')
-      .set({ owner })
+      .set({ ownerName })
       .where('id', '=', id)
       .execute();
   }

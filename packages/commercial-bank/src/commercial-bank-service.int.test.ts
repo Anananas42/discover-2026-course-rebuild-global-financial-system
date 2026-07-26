@@ -54,10 +54,10 @@ afterAll(async () => {
 
 /** A registered bank with the given reserves at the central bank. */
 async function bankWithReserves(
-  name: string,
+  legalName: string,
   reserves: string
 ): Promise<CommercialBank> {
-  const bank = await Effect.runPromise(centralBank.registerBank({ name }));
+  const bank = await Effect.runPromise(centralBank.registerBank({ legalName }));
   if (reserves !== '0') {
     await Effect.runPromise(
       centralBank.lendToBank({ bankId: bank.id, amount: new Big(reserves) })
@@ -71,12 +71,12 @@ async function bankWithReserves(
  *  loans exist, so their tests plant the rows that money moves between. */
 async function plantedAccount(
   bankId: number,
-  owner: string,
+  ownerName: string,
   balance: string
 ): Promise<Account> {
   const commercialBankDb = system.commercialBank(bankId);
   const account = await commercialBankDb.accounts.create({
-    owner,
+    ownerName,
     number: randomAccountNumber(),
     personId: randomPersonalId(),
   });
@@ -145,7 +145,7 @@ describe('task 5.1: becoming a client', () => {
     const account = await Effect.runPromise(
       banks.becomeClient({ bankId: bank.id, name: 'Alice' })
     );
-    expect(account.owner).toBe('Alice');
+    expect(account.ownerName).toBe('Alice');
     expect(account.personId).toMatch(/^\d{6}\/\d{4}$/);
     expect(account.number).toMatch(/^\d{10}$/);
     expect(account.balance.eq(0)).toBe(true);
@@ -174,7 +174,7 @@ describe('task 5.2: opening further accounts', () => {
     const more = await Effect.runPromise(
       banks.openAccount({ bankId: second.id, personId: alice.personId })
     );
-    expect(more.owner).toBe('Alice');
+    expect(more.ownerName).toBe('Alice');
     expect(more.personId).toBe(alice.personId);
   });
 
@@ -309,7 +309,7 @@ describe('task 4.2: receiving a payment', () => {
         amount: new Big('250'),
       })
     );
-    expect(credited.owner).toBe('Alice');
+    expect(credited.ownerName).toBe('Alice');
     expect(credited.balance.eq('350')).toBe(true);
     const books = await Effect.runPromise(
       banks.balanceSheet({ bankId: second.id })
@@ -372,7 +372,7 @@ describe('task 4.1: transferring within a bank', () => {
       banks.balanceSheet({ bankId: bank.id })
     );
     const byOwner = new Map(
-      books.accounts.map(account => [account.owner, account.balance])
+      books.accounts.map(account => [account.ownerName, account.balance])
     );
     expect(byOwner.get('Alice')?.eq('700')).toBe(true);
     expect(byOwner.get('Bob')?.eq('300')).toBe(true);
@@ -399,7 +399,10 @@ describe('task 4.3: transferring between banks', () => {
     expect(receipt.kind).toBe('interbank');
     const central = await Effect.runPromise(centralBank.balanceSheet());
     const reserves = new Map(
-      central.reserveAccounts.map(account => [account.owner, account.balance])
+      central.reserveAccounts.map(account => [
+        account.legalName,
+        account.balance,
+      ])
     );
     expect(reserves.get('First Bank')?.eq('3200')).toBe(true);
     expect(reserves.get('Second Bank')?.eq('4800')).toBe(true);
@@ -598,8 +601,8 @@ describe('task 5.3: renaming a person', () => {
     const clients = await Effect.runPromise(banks.listClients());
     const hers = clients.filter(c => c.personId === alice.personId);
     const others = clients.filter(c => c.personId === otherAlice.personId);
-    expect(hers.every(c => c.owner === 'Alicia')).toBe(true);
-    expect(others.every(c => c.owner === 'Alice')).toBe(true);
+    expect(hers.every(c => c.ownerName === 'Alicia')).toBe(true);
+    expect(others.every(c => c.ownerName === 'Alice')).toBe(true);
     // The money survives the relabel — accounts are keyed by their ids.
     expect(hers.find(c => c.bankId === first.id)?.balance.eq('100')).toBe(true);
   });
@@ -887,7 +890,7 @@ describe("the bank's own account", () => {
     const books = await Effect.runPromise(
       banks.balanceSheet({ bankId: bank.id })
     );
-    expect(books.ownAccount.owner).toBe('First Bank');
+    expect(books.ownAccount.ownerName).toBe('First Bank');
     expect(books.ownAccount.personId).toBe('');
     expect(books.equity.eq(0)).toBe(true);
     expect(books.accounts).toHaveLength(0);
@@ -921,7 +924,10 @@ describe("task 4.4: paying from the bank's own account", () => {
     // Reserves settled at the central bank, and both equity lines moved.
     const central = await Effect.runPromise(centralBank.balanceSheet());
     const reserves = new Map(
-      central.reserveAccounts.map(account => [account.owner, account.balance])
+      central.reserveAccounts.map(account => [
+        account.legalName,
+        account.balance,
+      ])
     );
     expect(reserves.get('First Bank')?.eq('4250')).toBe(true);
     expect(reserves.get('Second Bank')?.eq('4150')).toBe(true);

@@ -13,7 +13,8 @@ import { OperationDialog } from './OperationDialog.tsx';
 
 interface Bank {
   id: number;
-  name: string;
+  /** The name the bank is licensed under. */
+  legalName: string;
 }
 
 export function PayBankDialog({
@@ -40,7 +41,7 @@ export function PayBankDialog({
       onRun={async () => {
         if (!selected) throw new Error('There is no bank to pay yet.');
         await api.centralBank.payBank.mutate({ bankId: selected.id, amount });
-        const narration = `Paid ${formatMoney(amount)} ${currency} from the central bank's own account to ${selected.name} — its reserves and equity credited.`;
+        const narration = `Paid ${formatMoney(amount)} ${currency} from the central bank's own account to ${selected.legalName} — its reserves and equity credited.`;
         setAmount('');
         return narration;
       }}
@@ -59,7 +60,7 @@ export function PayBankDialog({
             >
               {banks.map(bank => (
                 <option key={bank.id} value={bank.id}>
-                  {bank.name}
+                  {bank.legalName}
                 </option>
               ))}
             </select>

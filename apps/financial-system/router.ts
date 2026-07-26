@@ -74,7 +74,7 @@ function recordWireMessage(message: Omit<WireMessage, 'seq' | 'at'>): void {
 /** A licensed bank's display name, for feed labels. */
 async function bankLabel(bankId: number): Promise<string> {
   const bank = await system.centralBank.commercialBanks.get({ id: bankId });
-  return bank?.name ?? `bank ${String(bankId)}`;
+  return bank?.legalName ?? `bank ${String(bankId)}`;
 }
 
 // The feed taps the wiring, never the domain: the notice port the
@@ -105,8 +105,11 @@ centralBank.connectCommercialBanks({
       recordWireMessage({
         channel: 'license',
         from: 'Central bank',
-        to: input.name,
-        fields: { bankId: String(input.bankId), name: input.name },
+        to: input.legalName,
+        fields: {
+          bankId: String(input.bankId),
+          legalName: input.legalName,
+        },
       });
       return yield* commercialBanks.connectBank(input);
     }),
@@ -226,7 +229,7 @@ export const appRouter = t.router({
       return banks.map(bank => ({ ...bank, bic: bicFor(bank.id) }));
     }),
     open: procedure
-      .input(z.object({ name: z.string() }))
+      .input(z.object({ legalName: z.string() }))
       .mutation(({ input }) => runEffect(centralBank.registerBank(input))),
     /** A bank's full balance sheet: its own database's side plus its
      *  slice of the central bank's (reserves held there, debt owed
@@ -251,7 +254,7 @@ export const appRouter = t.router({
           bank: bankBooks.bank,
           accounts: bankBooks.accounts.map(account => ({
             id: account.id,
-            owner: account.owner,
+            ownerName: account.ownerName,
             personId: account.personId,
             iban: ibanFor(input.bankId, account.number),
             balance: money(account.balance),
@@ -375,7 +378,10 @@ export const appRouter = t.router({
         const credited = await runEffect(
           commercialBanks.receivePayment({ ...input, amount })
         );
-        return { recipient: credited.owner, balance: money(credited.balance) };
+        return {
+          recipient: credited.ownerName,
+          balance: money(credited.balance),
+        };
       }),
     /** The bank prices its own loans — in percent. New loans only. */
     setInterestRate: procedure
@@ -432,10 +438,10 @@ export const appRouter = t.router({
       const clients = await runEffect(commercialBanks.listClients());
       return clients.map(client => ({
         bankId: client.bankId,
-        bankName: client.bankName,
+        bankLegalName: client.bankLegalName,
         accountId: client.accountId,
         personId: client.personId,
-        owner: client.owner,
+        ownerName: client.ownerName,
         iban: ibanFor(client.bankId, client.number),
         balance: money(client.balance),
         debt: money(client.debt),
@@ -459,7 +465,7 @@ export const appRouter = t.router({
         const account = await runEffect(commercialBanks.becomeClient(input));
         return {
           id: account.id,
-          owner: account.owner,
+          ownerName: account.ownerName,
           personId: account.personId,
         };
       }),
@@ -470,7 +476,7 @@ export const appRouter = t.router({
         const account = await runEffect(commercialBanks.openAccount(input));
         return {
           id: account.id,
-          owner: account.owner,
+          ownerName: account.ownerName,
           personId: account.personId,
         };
       }),
@@ -521,7 +527,7 @@ export const appRouter = t.router({
       return {
         reserveAccounts: books.reserveAccounts.map(account => ({
           id: account.id,
-          owner: account.owner,
+          legalName: account.legalName,
           balance: money(account.balance),
         })),
         claims: books.claims.map(claim => ({

@@ -23,17 +23,17 @@ export class InvalidAmountError extends Data.TaggedError('InvalidAmountError')<{
 
 export class InvalidBankNameError extends Data.TaggedError(
   'InvalidBankNameError'
-)<{ name: string; reason: string }> {
+)<{ legalName: string; reason: string }> {
   override get message(): string {
-    return `Bank name '${this.name}' is invalid: ${this.reason}.`;
+    return `Bank name '${this.legalName}' is invalid: ${this.reason}.`;
   }
 }
 
 export class DuplicateBankNameError extends Data.TaggedError(
   'DuplicateBankNameError'
-)<{ name: string }> {
+)<{ legalName: string }> {
   override get message(): string {
-    return `A bank named '${this.name}' is already registered.`;
+    return `A bank named '${this.legalName}' is already registered.`;
   }
 }
 

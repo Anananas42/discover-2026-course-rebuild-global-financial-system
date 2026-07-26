@@ -41,10 +41,18 @@ export interface DumpedDatabase {
   tables: DumpedTable[];
 }
 
-/** An account row as stored: person_id exists only in banks' tables —
- *  the central bank's accounts table has no such column. */
-type AccountRow = Omit<Selectable<AccountsTable>, 'personId'> & {
+/** An account row as stored. The two accounts tables differ: a bank's
+ *  holds number, person_id and owner_name; the central bank's holds bic
+ *  and legal_name, and no person_id at all. */
+type AccountRow = Omit<
+  Selectable<AccountsTable>,
+  'personId' | 'number' | 'ownerName'
+> & {
+  number?: string;
   personId?: string;
+  ownerName?: string;
+  bic?: string;
+  legalName?: string;
 };
 
 /** One institution's rows, verbatim — amounts stay minor-unit strings. */
@@ -92,8 +100,8 @@ export class FinancialSystemDb {
         tables: [
           {
             name: 'commercial_banks',
-            columns: ['id', 'name'],
-            rows: banks.map(bank => [String(bank.id), bank.name]),
+            columns: ['id', 'legal_name'],
+            rows: banks.map(bank => [String(bank.id), bank.legalName]),
           },
           ...(await this.dumpInstitutionTables(null)),
         ],
@@ -101,7 +109,7 @@ export class FinancialSystemDb {
     ];
     for (const bank of banks) {
       result.push({
-        institution: bank.name,
+        institution: bank.legalName,
         schema: bankSchemaName(bank.id),
         tables: await this.dumpInstitutionTables(bank.id),
       });
@@ -134,27 +142,29 @@ export class FinancialSystemDb {
       bankId
     );
     return [
-      // The central bank's accounts table has no person_id column —
-      // only institutions bank there — so its dump shows none either.
+      // The central bank's accounts table is the one that differs: its
+      // holders are institutions, so a row carries a BIC and a legal
+      // entity name where a bank's carries a number, a person_id and
+      // the holder's name.
       bankId === null
         ? {
             name: 'accounts',
-            columns: ['id', 'number', 'owner', 'balance'],
+            columns: ['id', 'bic', 'legal_name', 'balance'],
             rows: accounts.map(row => [
               String(row.id),
-              row.number,
-              row.owner,
+              row.bic ?? '',
+              row.legalName ?? '',
               row.balance,
             ]),
           }
         : {
             name: 'accounts',
-            columns: ['id', 'number', 'person_id', 'owner', 'balance'],
+            columns: ['id', 'number', 'person_id', 'owner_name', 'balance'],
             rows: accounts.map(row => [
               String(row.id),
-              row.number,
+              row.number ?? '',
               row.personId ?? '',
-              row.owner,
+              row.ownerName ?? '',
               row.balance,
             ]),
           },
@@ -359,10 +369,29 @@ function migrateSnapshot(raw: StateSnapshot | LegacySnapshot): StateSnapshot {
             rows: ledger.rows,
           })),
         };
-  // Central-bank account rows saved before the person_id column was
-  // dropped still carry it (always ''); the table no longer has the
-  // column, so the key goes.
+  // A slot written before the register's column was renamed carries the
+  // legal name under `name`.
+  snapshot.commercialBanks = snapshot.commercialBanks.map(
+    ({ name: legacyName, ...bank }: CommercialBank & { name?: string }) =>
+      bank.legalName === undefined && legacyName !== undefined
+        ? { ...bank, legalName: legacyName }
+        : bank
+  );
   for (const database of snapshot.databases) {
+    // Account rows saved before `owner` was renamed carry it too — the
+    // holder's name in a bank's row, the licensed legal name in the
+    // central bank's.
+    database.rows.accounts = database.rows.accounts.map(
+      ({ owner: legacyOwner, ...row }: AccountRow & { owner?: string }) => {
+        if (legacyOwner === undefined) return row;
+        return database.bankId === null
+          ? { ...row, legalName: row.legalName ?? legacyOwner }
+          : { ...row, ownerName: row.ownerName ?? legacyOwner };
+      }
+    );
+    // Central-bank account rows saved before the person_id column was
+    // dropped still carry it (always ''); the table no longer has the
+    // column, so the key goes.
     if (database.bankId !== null) continue;
     database.rows.accounts = database.rows.accounts.map(
       ({ personId: _legacy, ...row }) => row

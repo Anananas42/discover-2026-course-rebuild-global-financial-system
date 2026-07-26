@@ -19,7 +19,10 @@ import { NotImplementedError } from '../../central-bank/src/bank-errors.ts';
 import Big from 'big.js';
 import { Effect } from 'effect';
 
-import { AccountExistsError, NegativeAmountError } from './warmup-errors.ts';
+import {
+  DuplicateBankNameError,
+  NegativeAmountError,
+} from './warmup-errors.ts';
 
 /**
  * Your first task exists to run the loop once: read the test, write the
@@ -123,9 +126,15 @@ export function countLicensedBanks(repo: StandInRepo): Effect.Effect<number> {
   });
 }
 
-/** An account as the stand-in db knows it: a name and what it holds. */
+/**
+ * An account as the stand-in db knows it: the id its database issued,
+ * the holder's name, and what the account holds. Writes address the id,
+ * never the name — two accounts may carry the same name, and a holder
+ * can change theirs.
+ */
 export interface StandInAccount {
-  name: string;
+  id: number;
+  ownerName: string;
   balance: Big;
 }
 
@@ -145,10 +154,10 @@ export interface StandInAccount {
  * its own, and the transaction cannot roll it back.
  */
 export interface StandInDb {
-  setBalance(input: { account: string; balance: Big }): Promise<void>;
+  setBalance(input: { id: number; balance: Big }): Promise<void>;
   transaction<T>(
     fn: (tx: {
-      setBalance(input: { account: string; balance: Big }): Promise<void>;
+      setBalance(input: { id: number; balance: Big }): Promise<void>;
     }) => Promise<T>
   ): Promise<T>;
 }
@@ -173,20 +182,30 @@ export function recordTransfer(
   });
 }
 
-/**
- * Prebuilt, not a task: the stand-in register of accounts — the same
- * stand-in idea again, one step closer to a real repository. Both of its
- * answers arrive as Promises, as every real one's do.
- */
-export interface StandInRegister {
-  isNameTaken(input: { name: string }): Promise<boolean>;
-  open(input: { name: string }): Promise<StandInAccount>;
+/** A licensed bank as the stand-in register knows it: the id the
+ *  register issued it, and the legal name it was licensed under. A
+ *  legal name is unique — unlike an account holder's name, which is
+ *  display text — and the register is what makes it so. */
+export interface StandInBank {
+  id: number;
+  legalName: string;
 }
 
 /**
- * Open an account in the register, unless the name is already taken:
- * ask the register, refuse a taken name with AccountExistsError, and
- * otherwise open the account and return what the register hands back.
+ * Prebuilt, not a task: the stand-in register of licensed banks — the
+ * same stand-in idea again, one step closer to a real repository. Both
+ * of its answers arrive as Promises, as every real one's do.
+ */
+export interface StandInRegister {
+  isNameTaken(input: { legalName: string }): Promise<boolean>;
+  license(input: { legalName: string }): Promise<StandInBank>;
+}
+
+/**
+ * Record a new bank in the register, unless its legal name is already
+ * taken: ask the register, refuse a taken name with
+ * DuplicateBankNameError, and otherwise license the bank and return
+ * what the register hands back.
  *
  * Read, then check, then write — the shape of nearly every task ahead,
  * and the reason this exercise exists. The three pieces are ones you
@@ -197,13 +216,13 @@ export interface StandInRegister {
  * call. The explainer on the task card shows what goes wrong when it is
  * written the other way round.
  */
-export function recordNewAccount(
+export function recordNewBank(
   register: StandInRegister,
-  input: { name: string }
-): Effect.Effect<StandInAccount, AccountExistsError> {
-  const { name } = input;
+  input: { legalName: string }
+): Effect.Effect<StandInBank, DuplicateBankNameError> {
+  const { legalName } = input;
   return Effect.gen(function* () {
-    // TASK 0.8: Open an account unless the name is taken
+    // TASK 0.8: Register a bank unless its legal name is taken
     // TODO: implement task 0.8.
     throw new NotImplementedError('0.8');
     // ENDTASK 0.8

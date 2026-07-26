@@ -8,7 +8,8 @@ import { OperationDialog } from './OperationDialog.tsx';
 
 interface Bank {
   id: number;
-  name: string;
+  /** The name the bank is licensed under. */
+  legalName: string;
 }
 
 export function TransferReservesDialog({
@@ -47,7 +48,7 @@ export function TransferReservesDialog({
     >
       {banks.map(bank => (
         <option key={bank.id} value={bank.id}>
-          {bank.name}
+          {bank.legalName}
         </option>
       ))}
     </select>
@@ -86,7 +87,7 @@ export function TransferReservesDialog({
           amount,
         });
         setAmount('');
-        return `Moved ${formatMoney(amount)} ${currency} of reserves from ${from.name} to ${to.name}.`;
+        return `Moved ${formatMoney(amount)} ${currency} of reserves from ${from.legalName} to ${to.legalName}.`;
       }}
     >
       {banks.length < 2 ? (

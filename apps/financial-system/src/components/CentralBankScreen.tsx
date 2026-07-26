@@ -356,7 +356,7 @@ export function CentralBankScreen({
                     key={account.id}
                     className="flex items-baseline justify-between gap-3 py-0.5 text-sm"
                   >
-                    <span>{account.owner}</span>
+                    <span>{account.legalName}</span>
                     <Amount
                       value={account.balance}
                       currency={config.currency}

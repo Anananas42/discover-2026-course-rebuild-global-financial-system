@@ -13,7 +13,8 @@ import { OperationDialog } from './OperationDialog.tsx';
 
 interface Bank {
   id: number;
-  name: string;
+  /** The name the bank is licensed under. */
+  legalName: string;
 }
 
 export function PayFromBankDialog({
@@ -46,12 +47,12 @@ export function PayFromBankDialog({
           toIban,
           amount,
         });
-        const paid = `Paid ${formatMoney(amount)} ${currency} from ${bank.name}'s own account to ${receipt.recipient}`;
+        const paid = `Paid ${formatMoney(amount)} ${currency} from ${bank.legalName}'s own account to ${receipt.recipient}`;
         setToIban('');
         setAmount('');
         return receipt.kind === 'interbank'
           ? `${paid} — interbank: settled reserves through the central bank.`
-          : `${paid} — internal: booked inside ${bank.name}.`;
+          : `${paid} — internal: booked inside ${bank.legalName}.`;
       }}
     >
       {!bank ? (

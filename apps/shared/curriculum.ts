@@ -189,10 +189,10 @@ export const CURRICULUM: CurriculumStage[] = [
       {
         id: '0.8',
         story:
-          'Open an account in the register, unless the name is already taken — read, check, write, the shape almost every task ahead has.',
+          'Record a bank in the register, unless its name is already taken — read, check, write, the shape almost every task ahead has.',
         steps: [
           'Read the explainer above: it shows this shape written correctly, and the tempting version that refuses nothing.',
-          'Ask the register whether the name is taken, refuse a taken one with the error the signature names, and otherwise open the account.',
+          'Ask the register whether the name is taken, refuse a taken one with the error the signature names, and otherwise license the bank.',
           'Run the tests: one scenario checks the refusal, one checks that a refused name never reached the register.',
         ],
       },
@@ -231,7 +231,7 @@ export const CURRICULUM: CurriculumStage[] = [
         requirements: {
           intro: 'Licensing is what brings a commercial bank into being:',
           items: [
-            "The bank is entered in the register of commercial banks — the central bank's list of who may operate.",
+            "The bank is entered in the register of commercial banks — the central bank's list of who may operate, under a legal name no other bank holds.",
             'The bank gets a reserve account — the money it keeps at the central bank.',
             'The bank gets a BIC — its identity in the payment system.',
           ],
@@ -241,12 +241,12 @@ export const CURRICULUM: CurriculumStage[] = [
             "Recording the license writes two rows in the central bank's database, and a crash must never leave one without the other:",
           items: [
             'The register row — creating it is what gives the bank its id.',
-            "The reserve account, carrying that bank's BIC: bicFor (bank-identity.ts, already imported in the file) takes the new id and returns the BIC. It is the account's identity — every later operation finds it by that, never by the name.",
+            "The reserve account, carrying that bank's BIC: bicFor (bank-identity.ts, already imported in the file) takes the new id and returns the BIC. It is the account's identity — every later operation finds it by that, never by the legal name beside it.",
           ],
         },
         steps: [
           'In the financial system, open the [Central Bank tab](fs:/central-bank) and click "License a new commercial bank".',
-          "Name your country's first bank.",
+          "Give your country's first bank its legal name.",
           "The bank's reserve account appears on the central bank's balance sheet, at zero.",
           "On the [Commercial Bank tab](fs:/commercial-bank), the new bank is there with its own account. The bank's own systems came online the moment your license landed.",
         ],

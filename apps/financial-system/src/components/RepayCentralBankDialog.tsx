@@ -9,7 +9,8 @@ import { OperationDialog } from './OperationDialog.tsx';
 
 interface Bank {
   id: number;
-  name: string;
+  /** The name the bank is licensed under. */
+  legalName: string;
 }
 
 export function RepayCentralBankDialog({
@@ -41,8 +42,8 @@ export function RepayCentralBankDialog({
         const repaid = `Repaid ${formatMoney(amount)} ${currency} to the central bank`;
         setAmount('');
         return new Big(remainingDebt).eq(0)
-          ? `${repaid} — ${bank.name}'s debt is fully repaid.`
-          : `${repaid} — ${bank.name} still owes ${formatMoney(remainingDebt)} ${currency}.`;
+          ? `${repaid} — ${bank.legalName}'s debt is fully repaid.`
+          : `${repaid} — ${bank.legalName} still owes ${formatMoney(remainingDebt)} ${currency}.`;
       }}
     >
       <Field label={`amount (${currency})`}>

@@ -24,7 +24,11 @@ import { sql, type Generated, type Kysely } from 'kysely';
 
 export interface CommercialBanksTable {
   id: Generated<number>;
-  name: string;
+  /** The bank's legal entity name — what the license is issued
+   *  against, and unique in the register: a second bank cannot be
+   *  licensed under a name already on it. Everything else identifies
+   *  the bank by its id or its BIC. */
+  legalName: string;
 }
 
 /** A commercial bank's accounts table. */
@@ -36,8 +40,10 @@ export interface AccountsTable {
   /** The holder's personal id — the person's unique identifier; empty
    *  for the bank's own account (an institution is no person). */
   personId: string;
-  /** The holder's display name — a label; people may share it. */
-  owner: string;
+  /** The holder's name as it is printed on the account — display text.
+   *  Two accounts may carry the same one, and a holder can change
+   *  theirs, so no row is ever found by it. */
+  ownerName: string;
   /** Balance in minor units; bigint column, string on the wire. */
   balance: string;
 }
@@ -54,9 +60,10 @@ export interface CentralBankAccountsTable {
    *  account: institutions bank here under the identity the register
    *  gave them, never under a name they could change. */
   bic: string;
-  /** The holding institution's display name — a label, like a person's
-   *  name on a commercial account. Never used to find a row. */
-  owner: string;
+  /** The holding institution's legal entity name, copied from the
+   *  register when the license was issued. Display text here — the BIC
+   *  above is what finds the row. */
+  legalName: string;
   /** Balance in minor units; bigint column, string on the wire. */
   balance: string;
 }
@@ -125,6 +132,28 @@ export function bankSchemaName(bankId: number): string {
   return `bank_${bankId}`;
 }
 
+/** Renames a column that an older database still carries under its old
+ *  name — a no-op once the new name is in place, so every connect can
+ *  run it. The values travel with the column; nothing is rewritten. */
+async function renameColumn(
+  db: Kysely<Database>,
+  schema: string,
+  table: string,
+  from: string,
+  to: string
+): Promise<void> {
+  const columns = await sql<{ columnName: string }>`
+    SELECT column_name FROM information_schema.columns
+    WHERE table_schema = ${schema} AND table_name = ${table}
+      AND column_name IN (${from}, ${to})`.execute(db);
+  const present = new Set(columns.rows.map(row => row.columnName));
+  if (present.has(from) && !present.has(to)) {
+    await sql`
+      ALTER TABLE ${sql.id(schema)}.${sql.id(table)}
+      RENAME COLUMN ${sql.id(from)} TO ${sql.id(to)}`.execute(db);
+  }
+}
+
 async function ensureInstitutionTables(
   db: Kysely<Database>,
   schema: string,
@@ -140,31 +169,27 @@ async function ensureInstitutionTables(
         id serial PRIMARY KEY,
         number text NOT NULL DEFAULT '0',
         person_id text NOT NULL DEFAULT '',
-        owner text NOT NULL,
+        owner_name text NOT NULL,
         balance bigint NOT NULL DEFAULT 0
       )`.execute(db);
+    // `owner` said object where the column holds text. Same values,
+    // named for what they are — as with the bic rename below.
+    await renameColumn(db, schema, 'accounts', 'owner', 'owner_name');
   } else {
     await sql`
       CREATE TABLE IF NOT EXISTS ${sql.id(schema)}.accounts (
         id serial PRIMARY KEY,
         bic text NOT NULL DEFAULT '0',
-        owner text NOT NULL,
+        legal_name text NOT NULL,
         balance bigint NOT NULL DEFAULT 0
       )`.execute(db);
     // The central bank's accounts were once numbered like a client's,
     // in a `number` column, though the value was always the BIC. The
     // rename carries those values over: same identities, named for what
-    // they are.
-    const columns = await sql<{ columnName: string }>`
-      SELECT column_name FROM information_schema.columns
-      WHERE table_schema = ${schema} AND table_name = 'accounts'
-        AND column_name IN ('number', 'bic')`.execute(db);
-    const present = new Set(columns.rows.map(row => row.columnName));
-    if (present.has('number') && !present.has('bic')) {
-      await sql`
-        ALTER TABLE ${sql.id(schema)}.accounts
-        RENAME COLUMN number TO bic`.execute(db);
-    }
+    // they are. Only institutions bank here, so their `owner` column
+    // held a legal entity name all along.
+    await renameColumn(db, schema, 'accounts', 'number', 'bic');
+    await renameColumn(db, schema, 'accounts', 'owner', 'legal_name');
   }
   // Idempotent catch-ups for databases created before a column changed;
   // accounts opened back then keep the defaults until the data is reset.
@@ -217,8 +242,17 @@ export async function ensureSchema(db: Kysely<Database>): Promise<void> {
   await sql`
     CREATE TABLE IF NOT EXISTS ${sql.id(CENTRAL_BANK_SCHEMA)}.commercial_banks (
       id serial PRIMARY KEY,
-      name text NOT NULL UNIQUE
+      legal_name text NOT NULL UNIQUE
     )`.execute(db);
+  // The register held the same value under `name`; the unique index
+  // travels with the column.
+  await renameColumn(
+    db,
+    CENTRAL_BANK_SCHEMA,
+    'commercial_banks',
+    'name',
+    'legal_name'
+  );
   // Workbench state, not any institution's data: the one slot where the
   // last snapshot of every institution's rows is kept (see saveSnapshot).
   await sql`

@@ -131,7 +131,7 @@ export function CommercialBankScreen({
   // and groups both sort richest-first.
   const byOwner: {
     personId: string;
-    owner: string;
+    ownerName: string;
     rows: BankBalanceSheet['accounts'];
   }[] = [];
   for (const account of books?.accounts ?? []) {
@@ -142,7 +142,7 @@ export function CommercialBankScreen({
     else {
       byOwner.push({
         personId: account.personId,
-        owner: account.owner,
+        ownerName: account.ownerName,
         rows: [account],
       });
     }
@@ -153,7 +153,8 @@ export function CommercialBankScreen({
   // a client with several loans appears once, largest debt first. Loans
   // are keyed by the borrower's personal id; the name resolves through
   // the accounts, the same join the write-off dialog makes.
-  const loansByBorrower: { personId: string; owner: string; total: Big }[] = [];
+  const loansByBorrower: { personId: string; ownerName: string; total: Big }[] =
+    [];
   for (const loan of books?.loans ?? []) {
     const group = loansByBorrower.find(
       candidate => candidate.personId === loan.borrower
@@ -162,9 +163,9 @@ export function CommercialBankScreen({
     else {
       loansByBorrower.push({
         personId: loan.borrower,
-        owner:
+        ownerName:
           books?.accounts.find(account => account.personId === loan.borrower)
-            ?.owner ?? loan.borrower,
+            ?.ownerName ?? loan.borrower,
         total: new Big(loan.amount),
       });
     }
@@ -180,12 +181,12 @@ export function CommercialBankScreen({
     ? [
         {
           iban: books.ownAccount.iban,
-          owner: selected?.name ?? '',
+          ownerName: selected?.legalName ?? '',
           balance: books.ownAccount.balance,
         },
         ...books.accounts.map(account => ({
           iban: account.iban,
-          owner: account.owner,
+          ownerName: account.ownerName,
           balance: account.balance,
         })),
       ].sort((a, b) => new Big(b.balance).cmp(a.balance))
@@ -234,7 +235,7 @@ export function CommercialBankScreen({
               <SelectContent>
                 {banks.map(bank => (
                   <SelectItem key={bank.id} value={String(bank.id)}>
-                    {bank.name}
+                    {bank.legalName}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -494,7 +495,7 @@ export function CommercialBankScreen({
                         className="flex items-baseline justify-between gap-3 py-0.5 pl-5 text-sm text-muted"
                       >
                         <span>
-                          {loan.owner}
+                          {loan.ownerName}
                           <span className="ml-1.5 font-mono text-xs tabular-nums">
                             | {loan.personId}
                           </span>
@@ -665,7 +666,7 @@ export function CommercialBankScreen({
                           colSpan={2}
                           className="py-1.5 pl-4 text-xs font-semibold tracking-wider text-muted uppercase"
                         >
-                          {group.owner}
+                          {group.ownerName}
                           <span className="ml-1.5 font-mono font-normal tracking-normal normal-case tabular-nums">
                             | {group.personId}
                           </span>
@@ -763,7 +764,7 @@ export function CommercialBankScreen({
         {selected && (
           <DatabaseSection
             version={version}
-            label={`Database — ${selected.name}'s own database`}
+            label={`Database — ${selected.legalName}'s own database`}
             schemas={[`bank_${selected.id}`]}
           />
         )}

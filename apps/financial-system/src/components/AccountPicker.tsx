@@ -19,10 +19,10 @@ import { Field, FieldGroup } from './Field.tsx';
 
 export interface PickerAccount {
   bankId: number;
-  bankName: string;
+  bankLegalName: string;
   accountId: number;
   personId: string;
-  owner: string;
+  ownerName: string;
   iban: string;
   balance: string;
 }
@@ -47,7 +47,7 @@ export function useAccountSelection(
   const persons: { personId: string; name: string }[] = [];
   for (const client of clients) {
     if (!persons.some(person => person.personId === client.personId)) {
-      persons.push({ personId: client.personId, name: client.owner });
+      persons.push({ personId: client.personId, name: client.ownerName });
     }
   }
   // Without preselect the person stays unchosen until an explicit pick —

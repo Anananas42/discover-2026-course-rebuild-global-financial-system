@@ -111,13 +111,15 @@ export interface BankBalanceSheet {
 
 export interface Client {
   bankId: number;
-  bankName: string;
+  /** The bank's legal entity name, for display beside the account. */
+  bankLegalName: string;
   accountId: number;
   /** The bank-issued account number the IBAN is built from. */
   number: string;
   /** The holder's personal id — the person's unique identifier. */
   personId: string;
-  owner: string;
+  /** The holder's name as printed on the account — display text. */
+  ownerName: string;
   balance: Big;
   /** What this account's holder still owes this bank on their loan. */
   debt: Big;
@@ -205,15 +207,18 @@ export class CommercialBanks implements LicensedBanks, ReceivingBank {
    * task: this is the bank's own IT at work; the central bank triggers
    * it over the notice channel at the end of every licensing (task 1.1).
    */
-  connectBank(input: { bankId: number; name: string }): Effect.Effect<void> {
-    const { bankId, name } = input;
+  connectBank(input: {
+    bankId: number;
+    legalName: string;
+  }): Effect.Effect<void> {
+    const { bankId, legalName } = input;
     const commercialBankDb = this.commercialBankDbFor(bankId);
     return Effect.gen(function* () {
       yield* Effect.promise(() => commercialBankDb.createDatabase());
       // Institutions have no personal id — the empty string marks that.
       yield* Effect.promise(() =>
         commercialBankDb.accounts.create({
-          owner: name,
+          ownerName: legalName,
           number: randomAccountNumber(),
           personId: '',
         })
@@ -528,7 +533,7 @@ export class CommercialBanks implements LicensedBanks, ReceivingBank {
           receiver,
           amount,
         });
-        return { kind: 'internal', recipient: receiver.owner };
+        return { kind: 'internal', recipient: receiver.ownerName };
       }
       // Read and check first: the reserves must cover the settlement, so
       // a payment is never accepted only to fail mid-flight.
@@ -540,7 +545,7 @@ export class CommercialBanks implements LicensedBanks, ReceivingBank {
         receiver,
         amount,
       });
-      return { kind: 'interbank', recipient: receiver.owner };
+      return { kind: 'interbank', recipient: receiver.ownerName };
     });
   }
 
@@ -699,11 +704,11 @@ export class CommercialBanks implements LicensedBanks, ReceivingBank {
         for (const account of accounts) {
           clients.push({
             bankId: bank.id,
-            bankName: bank.name,
+            bankLegalName: bank.legalName,
             accountId: account.id,
             number: account.number,
             personId: account.personId,
-            owner: account.owner,
+            ownerName: account.ownerName,
             balance: account.balance,
             debt: debtByBorrower.get(account.personId) ?? new Big(0),
           });
@@ -777,10 +782,10 @@ export class CommercialBanks implements LicensedBanks, ReceivingBank {
    *  database. */
   private issueAccount(input: {
     bankId: number;
-    owner: string;
+    ownerName: string;
     personId: string;
   }): Effect.Effect<Account> {
-    const { bankId, owner, personId } = input;
+    const { bankId, ownerName, personId } = input;
     const commercialBankDb = this.commercialBankDbFor(bankId);
     return Effect.gen(function* () {
       const number = yield* Effect.promise(async () => {
@@ -793,7 +798,7 @@ export class CommercialBanks implements LicensedBanks, ReceivingBank {
         }
       });
       return yield* Effect.promise(() =>
-        commercialBankDb.accounts.create({ owner, number, personId })
+        commercialBankDb.accounts.create({ ownerName, number, personId })
       );
     });
   }
@@ -895,7 +900,7 @@ export class CommercialBanks implements LicensedBanks, ReceivingBank {
       if (reserves.lt(amount)) {
         return yield* Effect.fail(
           new InsufficientReservesError({
-            bank: bank.name,
+            bank: bank.legalName,
             balance: reserves.toFixed(CURRENCY.decimals),
             requested: amount.toFixed(CURRENCY.decimals),
           })
@@ -919,7 +924,7 @@ export class CommercialBanks implements LicensedBanks, ReceivingBank {
       if (account.balance.lt(amount)) {
         return yield* Effect.fail(
           new InsufficientFundsError({
-            owner: account.owner,
+            ownerName: account.ownerName,
             balance: account.balance.toFixed(CURRENCY.decimals),
             requested: amount.toFixed(CURRENCY.decimals),
           })

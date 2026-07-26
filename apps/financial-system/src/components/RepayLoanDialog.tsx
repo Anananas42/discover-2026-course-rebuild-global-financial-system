@@ -20,9 +20,9 @@ import { OperationDialog } from './OperationDialog.tsx';
 
 interface PersonAccount {
   bankId: number;
-  bankName: string;
+  bankLegalName: string;
   accountId: number;
-  owner: string;
+  ownerName: string;
   iban: string;
   debt: string;
 }
@@ -61,8 +61,8 @@ export function RepayLoanDialog({
         const repaid = `Repaid ${formatMoney(amount)} ${currency}`;
         setAmount('');
         return new Big(remainingDebt).eq(0)
-          ? `${repaid} — your loan at ${from.bankName} is fully repaid.`
-          : `${repaid} — you still owe ${formatMoney(remainingDebt)} ${currency} at ${from.bankName}.`;
+          ? `${repaid} — your loan at ${from.bankLegalName} is fully repaid.`
+          : `${repaid} — you still owe ${formatMoney(remainingDebt)} ${currency} at ${from.bankLegalName}.`;
       }}
     >
       {indebted.length === 0 ? (
@@ -77,7 +77,7 @@ export function RepayLoanDialog({
               <SelectContent>
                 {indebted.map(account => (
                   <SelectItem key={account.iban} value={account.iban}>
-                    {account.bankName} — owes {formatMoney(account.debt)}{' '}
+                    {account.bankLegalName} — owes {formatMoney(account.debt)}{' '}
                     {currency}{' '}
                     <span className="font-mono text-muted tabular-nums">
                       ({formatIban(account.iban)})

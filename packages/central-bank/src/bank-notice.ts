@@ -36,5 +36,8 @@ export interface LicensedBanks {
   ): Effect.Effect<void>;
   /** A fresh license lands at the bank: its own systems come online —
    *  its database, with its own account in it. Prebuilt plumbing. */
-  connectBank(input: { bankId: number; name: string }): Effect.Effect<void>;
+  connectBank(input: {
+    bankId: number;
+    legalName: string;
+  }): Effect.Effect<void>;
 }

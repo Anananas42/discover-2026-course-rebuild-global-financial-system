@@ -21,7 +21,8 @@ import { OperationDialog } from './OperationDialog.tsx';
 
 interface Bank {
   id: number;
-  name: string;
+  /** The name the bank is licensed under. */
+  legalName: string;
 }
 
 export function BecomeClientDialog({
@@ -30,9 +31,9 @@ export function BecomeClientDialog({
 }: {
   banks: Bank[];
   /** Lets the screen switch its identity to the new person. */
-  onCreated?: (created: { personId: string; owner: string }) => void;
+  onCreated?: (created: { personId: string; ownerName: string }) => void;
 }) {
-  const [owner, setOwner] = useState('');
+  const [ownerName, setOwnerName] = useState('');
   const [bankId, setBankId] = useState('');
   const selected = banks.find(bank => String(bank.id) === bankId) ?? banks[0];
 
@@ -51,11 +52,11 @@ export function BecomeClientDialog({
           throw new Error('There is no bank to open an account at yet.');
         const account = await api.user.becomeClient.mutate({
           bankId: selected.id,
-          name: owner,
+          name: ownerName,
         });
-        setOwner('');
+        setOwnerName('');
         onCreated?.(account);
-        return `${account.owner} (${account.personId}) is now a client of ${selected.name}.`;
+        return `${account.ownerName} (${account.personId}) is now a client of ${selected.legalName}.`;
       }}
     >
       {banks.length === 0 ? (
@@ -67,8 +68,8 @@ export function BecomeClientDialog({
           <Field label="name">
             <input
               className={INPUT_CLASS}
-              value={owner}
-              onChange={event => setOwner(event.target.value)}
+              value={ownerName}
+              onChange={event => setOwnerName(event.target.value)}
               placeholder="Alice"
             />
           </Field>
@@ -83,7 +84,7 @@ export function BecomeClientDialog({
               <SelectContent>
                 {banks.map(bank => (
                   <SelectItem key={bank.id} value={String(bank.id)}>
-                    {bank.name}
+                    {bank.legalName}
                   </SelectItem>
                 ))}
               </SelectContent>

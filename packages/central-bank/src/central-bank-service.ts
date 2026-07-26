@@ -187,37 +187,40 @@ export class CentralBank implements CentralBankApi {
    * at the central bank (the task, recordNewBank), then the license
    * lands at the bank and its own systems come online — its database,
    * with its own account in it (the bank's side, prebuilt). Tidies the
-   * name on the way in: spaces around it are ignored, a blank one is
-   * refused, and the central bank's own name is reserved.
+   * legal name on the way in: spaces around it are ignored, a blank one
+   * is refused, and the central bank's own name is reserved.
    */
   registerBank(input: {
-    name: string;
+    legalName: string;
   }): Effect.Effect<
     CommercialBank,
     InvalidBankNameError | DuplicateBankNameError
   > {
     const commercialBanks = this.connectedCommercialBanks();
     const recordNewBank = this.recordNewBank.bind(this);
-    const name = input.name.trim();
+    const legalName = input.legalName.trim();
     return Effect.gen(function* () {
-      if (name === '') {
+      if (legalName === '') {
         return yield* Effect.fail(
           new InvalidBankNameError({
-            name: input.name,
+            legalName: input.legalName,
             reason: 'must not be empty',
           })
         );
       }
-      if (name.toLowerCase() === CENTRAL_BANK_NAME.toLowerCase()) {
+      if (legalName.toLowerCase() === CENTRAL_BANK_NAME.toLowerCase()) {
         return yield* Effect.fail(
           new InvalidBankNameError({
-            name,
+            legalName,
             reason: 'reserved for the central bank itself',
           })
         );
       }
-      const bank = yield* recordNewBank({ name });
-      yield* commercialBanks.connectBank({ bankId: bank.id, name: bank.name });
+      const bank = yield* recordNewBank({ legalName });
+      yield* commercialBanks.connectBank({
+        bankId: bank.id,
+        legalName: bank.legalName,
+      });
       return bank;
     });
   }
@@ -230,15 +233,16 @@ export class CentralBank implements CentralBankApi {
    * reserve account. The reserve account carries the bank's BIC, the
    * identity in the payment system that this license just created;
    * `bicFor` (bank-identity.ts) derives it from the bank's id, and every
-   * later operation finds the account by it — the name beside it is only
-   * a label. A name already in the register is refused with
-   * DuplicateBankNameError — the signature promises it. The repository
-   * methods you need are on centralBankDb — the Database tab lists them.
+   * later operation finds the account by it — the legal name beside it
+   * is display text. A legal name already in the register is refused
+   * with DuplicateBankNameError — the signature promises it, and a
+   * register is where a name is unique. The repository methods you need
+   * are on centralBankDb — the Database tab lists them.
    */
   private recordNewBank(input: {
-    name: string;
+    legalName: string;
   }): Effect.Effect<CommercialBank, DuplicateBankNameError> {
-    const { name } = input;
+    const { legalName } = input;
     const centralBankDb = this.centralBankDb;
     return Effect.gen(function* () {
       // TASK 1.1: License a new commercial bank
@@ -434,7 +438,9 @@ export class CentralBank implements CentralBankApi {
       const banks = yield* Effect.promise(() =>
         centralBankDb.commercialBanks.list()
       );
-      const nameById = new Map(banks.map(bank => [String(bank.id), bank.name]));
+      const nameById = new Map(
+        banks.map(bank => [String(bank.id), bank.legalName])
+      );
       const claims = rawClaims.map(claim => ({
         ...claim,
         borrowerName: nameById.get(claim.borrower) ?? claim.borrower,
@@ -583,7 +589,7 @@ export class CentralBank implements CentralBankApi {
       if (reserve.balance.lt(amount)) {
         return yield* Effect.fail(
           new InsufficientReservesError({
-            bank: bank.name,
+            bank: bank.legalName,
             balance: reserve.balance.toFixed(CURRENCY.decimals),
             requested: amount.toFixed(CURRENCY.decimals),
           })
@@ -627,7 +633,7 @@ export class CentralBank implements CentralBankApi {
       if (existing) return existing;
       return yield* Effect.promise(() =>
         centralBankDb.accounts.create({
-          owner: CENTRAL_BANK_NAME,
+          legalName: CENTRAL_BANK_NAME,
           bic: CENTRAL_BANK_BIC,
         })
       );
@@ -649,7 +655,7 @@ export class CentralBank implements CentralBankApi {
       );
       if (!account) {
         return yield* Effect.dieMessage(
-          `${bank.name} is registered but has no reserve account.`
+          `${bank.legalName} is registered but has no reserve account.`
         );
       }
       return account;

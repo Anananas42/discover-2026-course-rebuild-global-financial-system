@@ -21,11 +21,12 @@ import { OperationDialog } from './OperationDialog.tsx';
 
 interface Bank {
   id: number;
-  name: string;
+  /** The name the bank is licensed under. */
+  legalName: string;
 }
 
 interface ClientAccountRow {
-  owner: string;
+  ownerName: string;
   personId: string;
 }
 
@@ -54,7 +55,7 @@ export function WriteOffLoanDialog({
     personId: loan.borrower,
     amount: loan.amount,
     name:
-      accounts.find(account => account.personId === loan.borrower)?.owner ??
+      accounts.find(account => account.personId === loan.borrower)?.ownerName ??
       loan.borrower,
   }));
   const selected =
@@ -78,7 +79,7 @@ export function WriteOffLoanDialog({
           bankId: bank.id,
           personId: selected.personId,
         });
-        const narration = `Wrote off ${selected.name}'s (${selected.personId}) debt of ${formatMoney(writtenOff)} ${currency} — ${bank.name}'s equity absorbed the loss; the deposits stay in circulation.`;
+        const narration = `Wrote off ${selected.name}'s (${selected.personId}) debt of ${formatMoney(writtenOff)} ${currency} — ${bank.legalName}'s equity absorbed the loss; the deposits stay in circulation.`;
         setPersonId('');
         return narration;
       }}

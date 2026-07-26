@@ -30,7 +30,7 @@ export function ReceiveNoticeDialog({
   currency,
 }: {
   /** The receiving bank — the one this screen impersonates. */
-  bank: { id: number; name: string };
+  bank: { id: number; legalName: string };
   currency: string;
 }) {
   const [kind, setKind] = useState<NoticeKind>('payment');
@@ -44,7 +44,7 @@ export function ReceiveNoticeDialog({
           <Mail size={16} /> Receive a central bank notice
         </>
       }
-      title={`Receive a central bank notice at ${bank.name}`}
+      title={`Receive a central bank notice at ${bank.legalName}`}
       description={
         <>
           Simulates a notice from the central bank: your bank records the change
@@ -67,7 +67,7 @@ export function ReceiveNoticeDialog({
         });
         const recorded = amount;
         setAmount('');
-        return `The notice is recorded — ${bank.name}'s own account moved by ${formatMoney(recorded)} ${currency}.`;
+        return `The notice is recorded — ${bank.legalName}'s own account moved by ${formatMoney(recorded)} ${currency}.`;
       }}
     >
       <Field label="what happened">

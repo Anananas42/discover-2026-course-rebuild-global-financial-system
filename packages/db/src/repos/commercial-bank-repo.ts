@@ -8,15 +8,17 @@ import { Repo } from './repo.ts';
 
 export interface CommercialBank {
   id: number;
-  name: string;
+  /** The name the license was issued against — unique in the register.
+   *  The id is what every other table refers to the bank by. */
+  legalName: string;
 }
 
 export class CommercialBankRepo extends Repo {
   /** Registers the bank: one new row in the register. */
-  async create({ name }: { name: string }): Promise<CommercialBank> {
+  async create({ legalName }: { legalName: string }): Promise<CommercialBank> {
     return this.scoped()
       .insertInto('commercial_banks')
-      .values({ name })
+      .values({ legalName })
       .returningAll()
       .executeTakeFirstOrThrow();
   }
@@ -29,15 +31,17 @@ export class CommercialBankRepo extends Repo {
       .executeTakeFirst();
   }
 
-  async getByName({
-    name,
+  /** The bank licensed under this legal name, if the register holds
+   *  one — the uniqueness check a new license must pass. */
+  async getByLegalName({
+    legalName,
   }: {
-    name: string;
+    legalName: string;
   }): Promise<CommercialBank | undefined> {
     return this.scoped()
       .selectFrom('commercial_banks')
       .selectAll()
-      .where('name', '=', name)
+      .where('legalName', '=', legalName)
       .executeTakeFirst();
   }
 

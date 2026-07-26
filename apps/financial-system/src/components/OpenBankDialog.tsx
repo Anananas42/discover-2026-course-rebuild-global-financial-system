@@ -9,9 +9,9 @@ export function OpenBankDialog({
   onOpened,
 }: {
   /** Lets the screen switch its identity to the freshly opened bank. */
-  onOpened?: (bank: { id: number; name: string }) => void;
+  onOpened?: (bank: { id: number; legalName: string }) => void;
 }) {
-  const [name, setName] = useState('');
+  const [legalName, setLegalName] = useState('');
 
   return (
     <OperationDialog
@@ -24,17 +24,17 @@ export function OpenBankDialog({
       description="Registers the bank and opens its reserve account at the central bank."
       runLabel="Open"
       onRun={async () => {
-        const bank = await api.banks.open.mutate({ name });
-        setName('');
+        const bank = await api.banks.open.mutate({ legalName });
+        setLegalName('');
         onOpened?.(bank);
-        return `${bank.name} is registered — reserve account opened at the central bank.`;
+        return `${bank.legalName} is registered — reserve account opened at the central bank.`;
       }}
     >
-      <Field label="name">
+      <Field label="legal name">
         <input
           className={INPUT_CLASS}
-          value={name}
-          onChange={event => setName(event.target.value)}
+          value={legalName}
+          onChange={event => setLegalName(event.target.value)}
           placeholder="First Bank"
         />
       </Field>

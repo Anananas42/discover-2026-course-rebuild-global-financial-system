@@ -2,7 +2,10 @@ import Big from 'big.js';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { AccountExistsError, NegativeAmountError } from './warmup-errors.ts';
+import {
+  DuplicateBankNameError,
+  NegativeAmountError,
+} from './warmup-errors.ts';
 import type {
   StandInDb,
   StandInRegister,
@@ -11,7 +14,7 @@ import type {
 import {
   countLicensedBanks,
   readBalance,
-  recordNewAccount,
+  recordNewBank,
   recordTransfer,
   relayStatus,
   requireNonNegativeAmount,
@@ -93,20 +96,21 @@ describe('task 0.6: waiting for the register count', () => {
 
 /** A stand-in database: 100 on the generators account, and a
  *  transaction that commits its writes together or — when a write
- *  throws — not at all. Writing to `failingAccount` cuts the power.
+ *  throws — not at all. Balances are keyed by account id, as the real
+ *  repositories key them; writing to `failingAccountId` cuts the power.
  *  Committing takes one tick, like a real database over the wire, so
  *  code that does not wait for the transaction reports done while the
  *  balances are still unchanged. */
-function standInDb(failingAccount?: string) {
-  const balances = new Map<string, Big>([['generators', new Big('100')]]);
+function standInDb(failingAccountId?: number) {
+  const balances = new Map<number, Big>([[1, new Big('100')]]);
   const write = (
-    into: Map<string, Big>,
-    { account, balance }: { account: string; balance: Big }
+    into: Map<number, Big>,
+    { id, balance }: { id: number; balance: Big }
   ): void => {
-    if (account === failingAccount) {
+    if (id === failingAccountId) {
       throw new Error('The power died mid-write.');
     }
-    into.set(account, balance);
+    into.set(id, balance);
   };
   const db: StandInDb = {
     // Straight onto the balances: this write is done the moment it is
@@ -114,21 +118,21 @@ function standInDb(failingAccount?: string) {
     setBalance: async input => write(balances, input),
     async transaction(fn) {
       // What the block writes through `tx` is held aside until it ends.
-      const staged = new Map<string, Big>();
+      const staged = new Map<number, Big>();
       const result = await fn({
         setBalance: async input => write(staged, input),
       });
       await new Promise<void>(resolve => setTimeout(resolve));
       // Only a block that ran to the end lands in the balances.
-      for (const [account, balance] of staged) balances.set(account, balance);
+      for (const [id, balance] of staged) balances.set(id, balance);
       return result;
     },
   };
   return { db, balances };
 }
 
-const generators = { name: 'generators', balance: new Big('100') };
-const antennas = { name: 'antennas', balance: new Big('0') };
+const generators = { id: 1, ownerName: 'generators', balance: new Big('100') };
+const antennas = { id: 2, ownerName: 'antennas', balance: new Big('0') };
 
 describe('task 0.7: moving money in one transaction', () => {
   it('moves the amount from one account to the other', async () => {
@@ -140,8 +144,8 @@ describe('task 0.7: moving money in one transaction', () => {
         amount: new Big('40'),
       })
     );
-    expect(balances.get('generators')?.eq('60')).toBe(true);
-    expect(balances.get('antennas')?.eq('40')).toBe(true);
+    expect(balances.get(generators.id)?.eq('60')).toBe(true);
+    expect(balances.get(antennas.id)?.eq('40')).toBe(true);
   });
 
   it('waits for the transaction to commit before reporting done', async () => {
@@ -154,13 +158,13 @@ describe('task 0.7: moving money in one transaction', () => {
       })
     );
     expect(
-      balances.get('antennas')?.eq('40'),
+      balances.get(antennas.id)?.eq('40'),
       'recordTransfer reported done while the transaction was still running — wait for it: yield* Effect.promise(() => db.transaction(...))'
     ).toBe(true);
   });
 
   it('a power cut between the two writes leaves both accounts untouched', async () => {
-    const { db, balances } = standInDb('antennas');
+    const { db, balances } = standInDb(antennas.id);
     await expect(
       Effect.runPromise(
         recordTransfer(db, {
@@ -171,71 +175,71 @@ describe('task 0.7: moving money in one transaction', () => {
       )
     ).rejects.toThrow();
     expect(
-      balances.get('generators')?.eq('100'),
+      balances.get(generators.id)?.eq('100'),
       'The first balance was written but the second was not, and the first stayed written. A write made on db lands on its own even inside a transaction block — only writes made through the tx that db.transaction hands you are taken back together.'
     ).toBe(true);
-    expect(balances.has('antennas')).toBe(false);
+    expect(balances.has(antennas.id)).toBe(false);
   });
 });
 
-/** A register already holding the given names, which opens what it is
- *  told to and remembers whether it was asked to. */
+/** A register already holding the given names, which licenses what it
+ *  is told to and remembers whether it was asked to. */
 function standInRegister(taken: string[]): {
   register: StandInRegister;
-  opened: string[];
+  licensed: string[];
 } {
-  const opened: string[] = [];
+  const licensed: string[] = [];
   const register: StandInRegister = {
-    isNameTaken: async ({ name }) => taken.includes(name),
-    open: async ({ name }) => {
-      opened.push(name);
-      return { name, balance: new Big('0') };
+    isNameTaken: async ({ legalName }) => taken.includes(legalName),
+    license: async ({ legalName }) => {
+      licensed.push(legalName);
+      return { id: licensed.length, legalName };
     },
   };
-  return { register, opened };
+  return { register, licensed };
 }
 
-describe('task 0.8: opening an account unless the name is taken', () => {
-  it('opens the account and returns it when the name is free', async () => {
-    const { register, opened } = standInRegister([]);
-    const account = await Effect.runPromise(
-      recordNewAccount(register, { name: 'antennas' })
+describe('task 0.8: registering a bank unless the name is taken', () => {
+  it('licenses the bank and returns it when the name is free', async () => {
+    const { register, licensed } = standInRegister([]);
+    const bank = await Effect.runPromise(
+      recordNewBank(register, { legalName: 'First Bank' })
     );
-    expect(account.name).toBe('antennas');
-    expect(opened).toEqual(['antennas']);
+    expect(bank.legalName).toBe('First Bank');
+    expect(licensed).toEqual(['First Bank']);
   });
 
   it('refuses a name the register already holds', async () => {
-    const { register } = standInRegister(['antennas']);
+    const { register } = standInRegister(['First Bank']);
     // Which of the two ways the method ended matters as much as what it
     // ended with — handing the error back as an ordinary answer is not
     // refusing. Effect.match reports the way and the value separately,
     // and never rejects, so the assertions below always run and can say
     // what went wrong.
     const outcome = await Effect.runPromise(
-      Effect.match(recordNewAccount(register, { name: 'antennas' }), {
+      Effect.match(recordNewBank(register, { legalName: 'First Bank' }), {
         onFailure: (error): { refused: boolean; value: unknown } => ({
           refused: true,
           value: error,
         }),
-        onSuccess: (account): { refused: boolean; value: unknown } => ({
+        onSuccess: (bank): { refused: boolean; value: unknown } => ({
           refused: false,
-          value: account,
+          value: bank,
         }),
       })
     );
     expect(
       outcome.refused,
-      "recordNewAccount ended by returning a value, not by refusing. What refuses is the yield*: yield* Effect.fail(error) hands the error back as the method's failure. An error built and returned any other way — a plain return, or a return from inside the function handed to Effect.promise, where yield* cannot be written — is just the answer the caller receives."
+      "recordNewBank ended by returning a value, not by refusing. What refuses is the yield*: yield* Effect.fail(error) hands the error back as the method's failure. An error built and returned any other way — a plain return, or a return from inside the function handed to Effect.promise, where yield* cannot be written — is just the answer the caller receives."
     ).toBe(true);
-    expect(outcome.value).toBeInstanceOf(AccountExistsError);
+    expect(outcome.value).toBeInstanceOf(DuplicateBankNameError);
   });
 
-  it('does not open an account for a name it refused', async () => {
-    const { register, opened } = standInRegister(['antennas']);
+  it('does not license a bank for a name it refused', async () => {
+    const { register, licensed } = standInRegister(['First Bank']);
     await Effect.runPromise(
-      Effect.ignore(recordNewAccount(register, { name: 'antennas' }))
+      Effect.ignore(recordNewBank(register, { legalName: 'First Bank' }))
     );
-    expect(opened).toEqual([]);
+    expect(licensed).toEqual([]);
   });
 });

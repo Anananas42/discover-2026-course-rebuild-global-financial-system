@@ -91,7 +91,7 @@ export function UserScreen({
     else {
       persons.push({
         personId: client.personId,
-        name: client.owner,
+        name: client.ownerName,
         total: new Big(client.balance),
       });
     }
@@ -103,14 +103,15 @@ export function UserScreen({
   );
   // The table groups accounts under their bank, aggregator-style, each
   // group sorted richest-first like every other account list.
-  const byBank: { bankId: number; bankName: string; rows: ClientRow[] }[] = [];
+  const byBank: { bankId: number; bankLegalName: string; rows: ClientRow[] }[] =
+    [];
   for (const account of accounts) {
     const group = byBank.find(candidate => candidate.bankId === account.bankId);
     if (group) group.rows.push(account);
     else {
       byBank.push({
         bankId: account.bankId,
-        bankName: account.bankName,
+        bankLegalName: account.bankLegalName,
         rows: [account],
       });
     }
@@ -293,7 +294,7 @@ export function UserScreen({
                       className="py-1.5 pl-4 text-xs font-semibold tracking-wider text-muted uppercase"
                     >
                       <span className="flex items-baseline justify-between gap-3">
-                        <span>{group.bankName}</span>
+                        <span>{group.bankLegalName}</span>
                         {group.rows[0] && new Big(group.rows[0].debt).gt(0) && (
                           <span className="pr-0.5 font-normal normal-case">
                             owing{' '}

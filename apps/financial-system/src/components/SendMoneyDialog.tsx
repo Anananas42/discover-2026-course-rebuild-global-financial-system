@@ -67,8 +67,8 @@ export function SendMoneyDialog({
         setToIban('');
         setAmount('');
         return receipt.kind === 'interbank'
-          ? `${sent} — interbank: debited ${from.account.owner} at ${from.account.bankName}, settled reserves through the central bank, credited ${receipt.recipient}.`
-          : `${sent} — internal: booked inside ${from.account.bankName}, no reserves moved.`;
+          ? `${sent} — interbank: debited ${from.account.ownerName} at ${from.account.bankLegalName}, settled reserves through the central bank, credited ${receipt.recipient}.`
+          : `${sent} — internal: booked inside ${from.account.bankLegalName}, no reserves moved.`;
       }}
     >
       {clients.length === 0 ? (

@@ -21,12 +21,13 @@ import { OperationDialog } from './OperationDialog.tsx';
 
 interface Bank {
   id: number;
-  name: string;
+  /** The name the bank is licensed under. */
+  legalName: string;
 }
 
 interface ClientAccountRow {
   id: number;
-  owner: string;
+  ownerName: string;
   personId: string;
   iban: string;
 }
@@ -57,7 +58,7 @@ export function LendToClientDialog({
   const persons: { personId: string; name: string }[] = [];
   for (const account of accounts) {
     if (!persons.some(person => person.personId === account.personId)) {
-      persons.push({ personId: account.personId, name: account.owner });
+      persons.push({ personId: account.personId, name: account.ownerName });
     }
   }
   const person =
@@ -88,7 +89,7 @@ export function LendToClientDialog({
           accountId: selected.id,
           amount,
         });
-        const narration = `Lent ${formatMoney(amount)} ${currency} to ${person.name} (${person.personId}) — credited ${formatIban(selected.iban)}; with ${percent} interest booked to ${bank.name}'s own account, their debt is now ${formatMoney(totalDebt)} ${currency}.`;
+        const narration = `Lent ${formatMoney(amount)} ${currency} to ${person.name} (${person.personId}) — credited ${formatIban(selected.iban)}; with ${percent} interest booked to ${bank.legalName}'s own account, their debt is now ${formatMoney(totalDebt)} ${currency}.`;
         setAmount('');
         return narration;
       }}

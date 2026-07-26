@@ -16,7 +16,8 @@ import { RATE_SLIDER, rateSliderValue, sliderPercent } from './rate-slider.ts';
 
 interface Bank {
   id: number;
-  name: string;
+  /** The name the bank is licensed under. */
+  legalName: string;
 }
 
 export function SetInterestRateDialog({
@@ -66,7 +67,7 @@ export function SetInterestRateDialog({
         });
         const announced = new Big(result.interestRate).times(100).toString();
         setPercent('');
-        return `Set ${bank.name}'s interest rate to ${announced}% — every new client loan will carry it.`;
+        return `Set ${bank.legalName}'s interest rate to ${announced}% — every new client loan will carry it.`;
       }}
     >
       <div>

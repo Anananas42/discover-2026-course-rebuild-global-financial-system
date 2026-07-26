@@ -37,10 +37,13 @@ export function SendMoneyInternalDialog({
   const [bankId, setBankId] = useState('');
   const [amount, setAmount] = useState('');
 
-  const banks: { bankId: number; bankName: string }[] = [];
+  const banks: { bankId: number; bankLegalName: string }[] = [];
   for (const client of clients) {
     if (!banks.some(bank => bank.bankId === client.bankId)) {
-      banks.push({ bankId: client.bankId, bankName: client.bankName });
+      banks.push({
+        bankId: client.bankId,
+        bankLegalName: client.bankLegalName,
+      });
     }
   }
   // Default to the bank holding the selected person's richest account.
@@ -96,7 +99,7 @@ export function SendMoneyInternalDialog({
           <Repeat size={16} /> Send money (internal)
         </>
       }
-      title={`Send money within ${bank?.bankName ?? 'your bank'}`}
+      title={`Send money within ${bank?.bankLegalName ?? 'your bank'}`}
       description="Transfers to another client of the same bank — money moves inside the bank's own database, no reserves involved."
       runLabel="Send"
       wide
@@ -114,7 +117,7 @@ export function SendMoneyInternalDialog({
           toIban: to.account.iban,
           amount,
         });
-        const narration = `Sent ${formatMoney(amount)} ${currency} to ${receipt.recipient} — internal: booked inside ${from.account.bankName}, no reserves moved.`;
+        const narration = `Sent ${formatMoney(amount)} ${currency} to ${receipt.recipient} — internal: booked inside ${from.account.bankLegalName}, no reserves moved.`;
         setAmount('');
         return narration;
       }}
@@ -137,7 +140,7 @@ export function SendMoneyInternalDialog({
                     key={candidate.bankId}
                     value={String(candidate.bankId)}
                   >
-                    {candidate.bankName}
+                    {candidate.bankLegalName}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -145,11 +148,11 @@ export function SendMoneyInternalDialog({
           </Field>
           {from.accounts.length === 0 ? (
             <p className="text-sm text-muted">
-              Nobody has an account at {bank?.bankName} yet.
+              Nobody has an account at {bank?.bankLegalName} yet.
             </p>
           ) : to.persons.length === 0 ? (
             <p className="text-sm text-muted">
-              Nobody else has an account at {bank?.bankName} yet.
+              Nobody else has an account at {bank?.bankLegalName} yet.
             </p>
           ) : (
             <>

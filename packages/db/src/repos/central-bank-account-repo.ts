@@ -3,8 +3,8 @@
 // at the central bank — no persons — so nothing here speaks of personal
 // ids: not this API, and not the table itself (it has no person_id
 // column). An account is found by its holder's BIC, the identity the
-// register issued it; `owner` is a display label and nothing more,
-// exactly as a person's name is on a commercial account.
+// register issued it; `legalName` is the name the license was issued
+// against, carried here as display text and nothing more.
 
 import type Big from 'big.js';
 import type { Kysely } from 'kysely';
@@ -17,9 +17,10 @@ export interface CentralBankAccount {
   id: number;
   /** The holding institution's BIC — what identifies this account. */
   bic: string;
-  /** The holding institution's display name — a bank's, or the central
-   *  bank's own reserved label. A label: never look a row up by it. */
-  owner: string;
+  /** The holding institution's legal entity name — a licensed bank's,
+   *  or the central bank's own reserved one. Display text: never look a
+   *  row up by it. */
+  legalName: string;
   balance: Big;
 }
 
@@ -42,15 +43,15 @@ export class CentralBankAccountRepo extends Repo {
   /** Opens an account in the central bank's database — a bank's reserve
    *  account, or the central bank's own. */
   async create({
-    owner,
+    legalName,
     bic,
   }: {
-    owner: string;
+    legalName: string;
     bic: string;
   }): Promise<CentralBankAccount> {
     const row = await this.table
       .insertInto('accounts')
-      .values({ owner, bic, balance: '0' })
+      .values({ legalName, bic, balance: '0' })
       .returningAll()
       .executeTakeFirstOrThrow();
     return { ...row, balance: this.toMajor(row.balance) };

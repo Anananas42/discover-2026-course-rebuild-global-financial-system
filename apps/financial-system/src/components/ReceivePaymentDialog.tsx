@@ -17,7 +17,8 @@ import { OperationDialog } from './OperationDialog.tsx';
 
 interface Bank {
   id: number;
-  name: string;
+  /** The name the bank is licensed under. */
+  legalName: string;
   /** How payment messages name the bank. */
   bic: string;
 }
@@ -25,25 +26,25 @@ interface Bank {
 /** An account a message names: the bank's own or a client's. */
 export interface ReceivableAccount {
   iban: string;
-  owner: string;
+  ownerName: string;
   balance: string;
 }
 
 /** A picked bank's accounts — its own account first among equals, then
  *  clients — richest first, like every list. */
 function accountRows(
-  bankName: string,
+  bankLegalName: string,
   books: Awaited<ReturnType<typeof api.banks.balanceSheet.query>>
 ): ReceivableAccount[] {
   return [
     {
       iban: books.ownAccount.iban,
-      owner: bankName,
+      ownerName: bankLegalName,
       balance: books.ownAccount.balance,
     },
     ...books.accounts.map(account => ({
       iban: account.iban,
-      owner: account.owner,
+      ownerName: account.ownerName,
       balance: account.balance,
     })),
   ].sort((a, b) => new Big(b.balance).cmp(a.balance));
@@ -72,7 +73,7 @@ function AccountSelect({
           <SelectItem key={account.iban} value={account.iban}>
             <span className="flex flex-col items-start">
               <span>
-                {account.owner}{' '}
+                {account.ownerName}{' '}
                 <span className="text-muted">
                   ({formatMoney(account.balance)} {currency})
                 </span>
@@ -119,7 +120,7 @@ export function ReceivePaymentDialog({
   // return-path IBAN is picked, never typed.
   const [fromAccounts, setFromAccounts] = useState<ReceivableAccount[]>([]);
   const fromRef = from?.id;
-  const fromName = from?.name;
+  const fromName = from?.legalName;
   useEffect(() => {
     if (fromRef === undefined || fromName === undefined) {
       setFromAccounts([]);
@@ -159,7 +160,7 @@ export function ReceivePaymentDialog({
           <Inbox size={16} /> Receive an interbank payment message
         </>
       }
-      title={`Receive an interbank payment message at ${bank.name}`}
+      title={`Receive an interbank payment message at ${bank.legalName}`}
       description={
         <>
           Simulates an incoming payment: your bank acts on a raw payment
@@ -216,7 +217,7 @@ export function ReceivePaymentDialog({
                     <span className="font-mono tabular-nums">
                       {candidate.bic}
                     </span>{' '}
-                    <span className="text-muted">|</span> {candidate.name}
+                    <span className="text-muted">|</span> {candidate.legalName}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -247,7 +248,7 @@ export function ReceivePaymentDialog({
               <SelectContent>
                 <SelectItem value={String(bank.id)}>
                   <span className="font-mono tabular-nums">{bank.bic}</span>{' '}
-                  <span className="text-muted">|</span> {bank.name}
+                  <span className="text-muted">|</span> {bank.legalName}
                 </SelectItem>
               </SelectContent>
             </Select>
