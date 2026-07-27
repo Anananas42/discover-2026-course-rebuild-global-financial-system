@@ -267,12 +267,11 @@ export class FinancialSystemDb {
    *  row under every id exactly as saved. False when no snapshot has been
    *  stored yet. */
   async restoreSnapshot(): Promise<boolean> {
-    const stored = await sql<{ data: StateSnapshot | LegacySnapshot }>`
+    const stored = await sql<{ data: StateSnapshot }>`
       SELECT data FROM public.state_snapshot WHERE id = 1
     `.execute(this.dbConnection);
-    const raw = stored.rows[0]?.data;
-    if (!raw) return false;
-    const snapshot = migrateSnapshot(raw);
+    const snapshot = stored.rows[0]?.data;
+    if (!snapshot) return false;
     // One transaction, because reads run concurrently and some write: a
     // missing rate key is written back as a default (policyRate,
     // interestRate), and between a wipe and the re-insert that default
@@ -310,8 +309,7 @@ export class FinancialSystemDb {
       await scoped
         .insertInto('accounts')
         // The rows carry exactly their institution's columns — central
-        // bank rows have no personId key (migrateSnapshot strips it
-        // from legacy slots), bank rows always do.
+        // bank rows have no personId key, bank rows always do.
         .values(rows.accounts as Selectable<AccountsTable>[])
         .execute();
     }
@@ -347,55 +345,4 @@ export class FinancialSystemDb {
   destroy(): Promise<void> {
     return this.dbConnection.destroy();
   }
-}
-
-/** The snapshot format before per-institution handles: ledgers keyed by
- *  a `books` selector ('central-bank' or a bank id). A slot written by
- *  the previous code restores once, then gets overwritten in the new
- *  format. */
-interface LegacySnapshot {
-  commercialBanks: CommercialBank[];
-  ledgers: { books: 'central-bank' | number; rows: InstitutionRows }[];
-}
-
-function migrateSnapshot(raw: StateSnapshot | LegacySnapshot): StateSnapshot {
-  const snapshot: StateSnapshot =
-    'databases' in raw
-      ? raw
-      : {
-          commercialBanks: raw.commercialBanks,
-          databases: raw.ledgers.map(ledger => ({
-            bankId: ledger.books === 'central-bank' ? null : ledger.books,
-            rows: ledger.rows,
-          })),
-        };
-  // A slot written before the register's column was renamed carries the
-  // legal name under `name`.
-  snapshot.commercialBanks = snapshot.commercialBanks.map(
-    ({ name: legacyName, ...bank }: CommercialBank & { name?: string }) =>
-      bank.legalName === undefined && legacyName !== undefined
-        ? { ...bank, legalName: legacyName }
-        : bank
-  );
-  for (const database of snapshot.databases) {
-    // Account rows saved before `owner` was renamed carry it too — the
-    // holder's name in a bank's row, the licensed legal name in the
-    // central bank's.
-    database.rows.accounts = database.rows.accounts.map(
-      ({ owner: legacyOwner, ...row }: AccountRow & { owner?: string }) => {
-        if (legacyOwner === undefined) return row;
-        return database.bankId === null
-          ? { ...row, legalName: row.legalName ?? legacyOwner }
-          : { ...row, ownerName: row.ownerName ?? legacyOwner };
-      }
-    );
-    // Central-bank account rows saved before the person_id column was
-    // dropped still carry it (always ''); the table no longer has the
-    // column, so the key goes.
-    if (database.bankId !== null) continue;
-    database.rows.accounts = database.rows.accounts.map(
-      ({ personId: _legacy, ...row }) => row
-    );
-  }
-  return snapshot;
 }

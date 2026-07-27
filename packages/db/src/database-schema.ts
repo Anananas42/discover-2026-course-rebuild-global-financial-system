@@ -11,10 +11,11 @@
 // The central bank's database additionally holds `commercial_banks`, the
 // register of licensed banks — the source of the `bank_<id>` schema names.
 //
-// The table shapes are fixed for the whole course and applied idempotently
-// — `ensureSchema` on connect for the central bank, `ensureBankDatabase`
-// when a bank comes online. There are no migrations, and students never
-// touch this package.
+// The table shapes are fixed for the whole course and created from
+// nothing — `ensureSchema` on connect for the central bank,
+// `ensureBankDatabase` when a bank comes online. There are no
+// migrations: a database that is out of date is thrown away and made
+// again (`docker compose down -v`). Students never touch this package.
 //
 // Money columns are bigint minor units (strings on the wire); converting
 // them to Big major units is the repos' job, in their row mapping — the
@@ -132,28 +133,6 @@ export function bankSchemaName(bankId: number): string {
   return `bank_${bankId}`;
 }
 
-/** Renames a column that an older database still carries under its old
- *  name — a no-op once the new name is in place, so every connect can
- *  run it. The values travel with the column; nothing is rewritten. */
-async function renameColumn(
-  db: Kysely<Database>,
-  schema: string,
-  table: string,
-  from: string,
-  to: string
-): Promise<void> {
-  const columns = await sql<{ columnName: string }>`
-    SELECT column_name FROM information_schema.columns
-    WHERE table_schema = ${schema} AND table_name = ${table}
-      AND column_name IN (${from}, ${to})`.execute(db);
-  const present = new Set(columns.rows.map(row => row.columnName));
-  if (present.has(from) && !present.has(to)) {
-    await sql`
-      ALTER TABLE ${sql.id(schema)}.${sql.id(table)}
-      RENAME COLUMN ${sql.id(from)} TO ${sql.id(to)}`.execute(db);
-  }
-}
-
 async function ensureInstitutionTables(
   db: Kysely<Database>,
   schema: string,
@@ -172,9 +151,6 @@ async function ensureInstitutionTables(
         owner_name text NOT NULL,
         balance bigint NOT NULL DEFAULT 0
       )`.execute(db);
-    // `owner` said object where the column holds text. Same values,
-    // named for what they are — as with the bic rename below.
-    await renameColumn(db, schema, 'accounts', 'owner', 'owner_name');
   } else {
     await sql`
       CREATE TABLE IF NOT EXISTS ${sql.id(schema)}.accounts (
@@ -183,29 +159,6 @@ async function ensureInstitutionTables(
         legal_name text NOT NULL,
         balance bigint NOT NULL DEFAULT 0
       )`.execute(db);
-    // The central bank's accounts were once numbered like a client's,
-    // in a `number` column, though the value was always the BIC. The
-    // rename carries those values over: same identities, named for what
-    // they are. Only institutions bank here, so their `owner` column
-    // held a legal entity name all along.
-    await renameColumn(db, schema, 'accounts', 'number', 'bic');
-    await renameColumn(db, schema, 'accounts', 'owner', 'legal_name');
-  }
-  // Idempotent catch-ups for databases created before a column changed;
-  // accounts opened back then keep the defaults until the data is reset.
-  if (personAccounts) {
-    await sql`
-      ALTER TABLE ${sql.id(schema)}.accounts
-      ADD COLUMN IF NOT EXISTS number text NOT NULL DEFAULT '0'`.execute(db);
-    await sql`
-      ALTER TABLE ${sql.id(schema)}.accounts
-      ADD COLUMN IF NOT EXISTS person_id text NOT NULL DEFAULT ''`.execute(db);
-  } else {
-    // Central-bank databases created before the split carried the
-    // column; it never held anything but ''.
-    await sql`
-      ALTER TABLE ${sql.id(schema)}.accounts
-      DROP COLUMN IF EXISTS person_id`.execute(db);
   }
   await sql`
     CREATE TABLE IF NOT EXISTS ${sql.id(schema)}.claims (
@@ -214,10 +167,6 @@ async function ensureInstitutionTables(
       amount bigint NOT NULL DEFAULT 0,
       status text NOT NULL DEFAULT 'active'
     )`.execute(db);
-  // Idempotent catch-up for claims tables created before the status column.
-  await sql`
-    ALTER TABLE ${sql.id(schema)}.claims
-    ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active'`.execute(db);
   await sql`
     CREATE TABLE IF NOT EXISTS ${sql.id(schema)}.payments (
       id serial PRIMARY KEY,
@@ -244,15 +193,6 @@ export async function ensureSchema(db: Kysely<Database>): Promise<void> {
       id serial PRIMARY KEY,
       legal_name text NOT NULL UNIQUE
     )`.execute(db);
-  // The register held the same value under `name`; the unique index
-  // travels with the column.
-  await renameColumn(
-    db,
-    CENTRAL_BANK_SCHEMA,
-    'commercial_banks',
-    'name',
-    'legal_name'
-  );
   // Workbench state, not any institution's data: the one slot where the
   // last snapshot of every institution's rows is kept (see saveSnapshot).
   await sql`
@@ -260,18 +200,6 @@ export async function ensureSchema(db: Kysely<Database>): Promise<void> {
       id integer PRIMARY KEY,
       data jsonb NOT NULL
     )`.execute(db);
-  // Idempotent catch-up: banks created before a table or column existed
-  // get it on the next connect; their data is otherwise untouched.
-  const banks = await db
-    .withSchema(CENTRAL_BANK_SCHEMA)
-    .selectFrom('commercial_banks')
-    .select('id')
-    .execute();
-  for (const bank of banks) {
-    await ensureInstitutionTables(db, bankSchemaName(bank.id), {
-      personAccounts: true,
-    });
-  }
 }
 
 /** Creates a licensed bank's own database; idempotent like all the DDL. */
