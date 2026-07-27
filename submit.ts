@@ -7,7 +7,7 @@
 // reports which scenarios fail. Hidden test code is not disclosed; your own
 // test files are not submitted.
 
-import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { parseArgs } from 'node:util';
@@ -18,6 +18,7 @@ import type {
   SubmissionResponse,
 } from './apps/shared/submission.ts';
 import { passingTasks } from './apps/shared/unlocked-tasks.ts';
+import { tsSources } from './apps/shared/ts-sources.ts';
 
 const ROOT = import.meta.dirname;
 
@@ -50,16 +51,8 @@ if (!dashboard) {
 
 // Collect implementation sources. Test files stay local.
 const files: Record<string, string> = {};
-const packagesDir = path.join(ROOT, 'packages');
-const entries = await readdir(packagesDir, {
-  recursive: true,
-  withFileTypes: true,
-});
-for (const entry of entries) {
-  if (!entry.isFile() || !entry.name.endsWith('.ts')) continue;
-  if (entry.name.endsWith('.test.ts')) continue;
-  if (entry.parentPath.includes('node_modules')) continue;
-  const abs = path.join(entry.parentPath, entry.name);
+for (const abs of await tsSources(path.join(ROOT, 'packages'))) {
+  if (abs.endsWith('.test.ts')) continue;
   const rel = path.relative(ROOT, abs).replaceAll(path.sep, '/');
   files[rel] = await readFile(abs, 'utf8');
 }

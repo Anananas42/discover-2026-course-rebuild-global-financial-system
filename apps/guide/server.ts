@@ -21,6 +21,7 @@ import { CURRICULUM, taskById } from '../shared/curriculum.ts';
 import { createJsonServer, readBody, sendJson } from '../shared/http.ts';
 import { PORTS } from '../shared/ports.ts';
 import { isLiveStub } from '../shared/task-status.ts';
+import { tsSources } from '../shared/ts-sources.ts';
 import { RESULTS_FILE_NAME } from '../shared/unlocked-tasks.ts';
 import type {
   FileLink,
@@ -257,14 +258,9 @@ async function fileBrief(abs: string): Promise<string | undefined> {
 
 /** Scan TASK regions: id, title, file, line, and region body. */
 async function scanTasks(): Promise<TaskMarker[]> {
-  const dir = path.join(ROOT, 'packages');
-  const entries = await readdir(dir, { recursive: true, withFileTypes: true });
   const tasks: TaskMarker[] = [];
-  for (const entry of entries) {
-    if (!entry.isFile() || !entry.name.endsWith('.ts')) continue;
-    if (entry.name.endsWith('.test.ts')) continue;
-    if (entry.parentPath.includes('node_modules')) continue;
-    const abs = path.join(entry.parentPath, entry.name);
+  for (const abs of await tsSources(path.join(ROOT, 'packages'))) {
+    if (abs.endsWith('.test.ts')) continue;
     const lines = (await readFile(abs, 'utf8')).split('\n');
     let current: TaskMarker | null = null;
     for (const [i, line] of lines.entries()) {
@@ -301,14 +297,9 @@ async function scanTasks(): Promise<TaskMarker[]> {
  * a small run's duration.
  */
 async function publicTestFiles(taskId?: string): Promise<string[]> {
-  const dir = path.join(ROOT, 'packages');
-  const entries = await readdir(dir, { recursive: true, withFileTypes: true });
   const files: string[] = [];
-  for (const entry of entries) {
-    if (!entry.isFile() || !entry.name.endsWith('.test.ts')) continue;
-    if (entry.name.endsWith('.hidden.test.ts')) continue;
-    if (entry.parentPath.includes('node_modules')) continue;
-    const abs = path.join(entry.parentPath, entry.name);
+  for (const abs of await tsSources(path.join(ROOT, 'packages'))) {
+    if (!abs.endsWith('.test.ts') || abs.endsWith('.hidden.test.ts')) continue;
     if (taskId !== undefined) {
       const source = await readFile(abs, 'utf8');
       if (!source.includes(`task ${taskId}:`)) continue;

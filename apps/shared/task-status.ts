@@ -9,8 +9,10 @@
 // Node-only (filesystem access) — imported by servers, never by browser
 // code; the browser sees the result over the API.
 
-import { readdir, readFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+
+import { tsSources } from './ts-sources.ts';
 
 /** Task id → true when the stub is replaced by real code. */
 export type TaskStatusMap = Record<string, boolean>;
@@ -28,16 +30,10 @@ export function isLiveStub(line: string, id: string): boolean {
 }
 
 export async function scanTaskStatus(root: string): Promise<TaskStatusMap> {
-  const dir = path.join(root, 'packages');
-  const entries = await readdir(dir, { recursive: true, withFileTypes: true });
   const status: TaskStatusMap = {};
-  for (const entry of entries) {
-    if (!entry.isFile() || !entry.name.endsWith('.ts')) continue;
-    if (entry.name.endsWith('.test.ts')) continue;
-    if (entry.parentPath.includes('node_modules')) continue;
-    const lines = (
-      await readFile(path.join(entry.parentPath, entry.name), 'utf8')
-    ).split('\n');
+  for (const abs of await tsSources(path.join(root, 'packages'))) {
+    if (abs.endsWith('.test.ts')) continue;
+    const lines = (await readFile(abs, 'utf8')).split('\n');
     let current: { id: string; stubbed: boolean } | null = null;
     for (const line of lines) {
       const start = /^\s*\/\/ TASK ([^\s:]+):/.exec(line);

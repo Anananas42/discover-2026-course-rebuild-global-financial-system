@@ -18,4 +18,8 @@ export const PORTS = {
   boardApi: 4331,
   /** Guide API (internal; the guide frontend proxies /api here). */
   guideApi: 4332,
+  /** The course database (PostgreSQL in Docker). Fixed in three places
+   *  that must agree: here, docker-compose.yml's port mapping, and the
+   *  default connection string in packages/db/src/database.ts. */
+  db: 5433,
 } as const;

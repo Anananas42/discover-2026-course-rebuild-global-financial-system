@@ -3,30 +3,22 @@
 // apart (like the generator's test locks the stub format). It scans the
 // real package sources — no database, no mocks.
 
-import { readdir, readFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
 import { ALL_TASK_IDS, CURRICULUM } from './curriculum.ts';
+import { tsSources } from './ts-sources.ts';
 
 const PACKAGES = path.resolve(import.meta.dirname, '../../packages');
 
 /** Every `// TASK <id>:` marker id found under packages/. */
 async function markerIds(): Promise<string[]> {
-  const entries = await readdir(PACKAGES, {
-    recursive: true,
-    withFileTypes: true,
-  });
   const ids: string[] = [];
-  for (const entry of entries) {
-    if (!entry.isFile() || !entry.name.endsWith('.ts')) continue;
-    if (entry.name.endsWith('.test.ts')) continue;
-    if (entry.parentPath.includes('node_modules')) continue;
-    const source = await readFile(
-      path.join(entry.parentPath, entry.name),
-      'utf8'
-    );
+  for (const abs of await tsSources(PACKAGES)) {
+    if (abs.endsWith('.test.ts')) continue;
+    const source = await readFile(abs, 'utf8');
     for (const match of source.matchAll(/^\s*\/\/ TASK ([^\s:]+):/gm)) {
       if (match[1]) ids.push(match[1]);
     }

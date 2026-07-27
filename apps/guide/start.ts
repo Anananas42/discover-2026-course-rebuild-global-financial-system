@@ -138,33 +138,69 @@ if (install.status !== 0) {
   );
 }
 
-// Announce before the blocking call and inherit docker's own output:
-// if this step is slow or stuck (daemon not running, first-time image
-// pull), the user must see where and why — never a silent wait.
-console.log('Starting the database: docker compose up -d --wait');
-const compose = spawnSync('docker', ['compose', 'up', '-d', '--wait'], {
-  cwd: ROOT,
-  stdio: ['ignore', 'inherit', 'inherit'],
-  timeout: 120_000,
-});
-if (
-  compose.error &&
-  'code' in compose.error &&
-  compose.error.code === 'ENOENT'
-) {
+// The database port stays outside takeOverPorts on purpose: the usual
+// squatter there is a PostgreSQL server installed on this computer, and
+// killing someone's own database is not this script's call. Left
+// undetected, though, `docker compose up` fails to publish the port and
+// the servers reach that foreign PostgreSQL instead of the course
+// database — with errors that look like anything but the real cause.
+if (!(await portFree(PORTS.db)) && !composeDbRunning()) {
   console.error(
-    'Docker is not installed (the `docker` command was not found).'
+    `Port ${PORTS.db} is already in use by another program — most likely ` +
+      'a PostgreSQL server installed on this computer. The course ' +
+      'database needs that port.'
   );
-} else if (compose.signal) {
-  console.error('Giving up on the database after 120 s (docker compose hung).');
-} else if (compose.status !== 0) {
-  console.error('Could not start the database (is Docker running?).');
-}
-if (compose.status !== 0) {
+  console.error(
+    'Stop that server, then run `pnpm start` again. On Windows it runs ' +
+      'as a service named like "postgresql-x64-17" (the Services app); ' +
+      'on macOS: brew services stop postgresql.'
+  );
   console.error(
     'Continuing without the database — anything that needs it will fail ' +
-      'until you start it: docker compose up -d'
+      'until the port is free.'
   );
+} else {
+  // Announce before the blocking call and inherit docker's own output:
+  // if this step is slow or stuck (daemon not running, first-time image
+  // pull), the user must see where and why — never a silent wait.
+  console.log('Starting the database: docker compose up -d --wait');
+  const compose = spawnSync('docker', ['compose', 'up', '-d', '--wait'], {
+    cwd: ROOT,
+    stdio: ['ignore', 'inherit', 'inherit'],
+    timeout: 120_000,
+  });
+  if (
+    compose.error &&
+    'code' in compose.error &&
+    compose.error.code === 'ENOENT'
+  ) {
+    console.error(
+      'Docker is not installed (the `docker` command was not found).'
+    );
+  } else if (compose.signal) {
+    console.error(
+      'Giving up on the database after 120 s (docker compose hung).'
+    );
+  } else if (compose.status !== 0) {
+    console.error('Could not start the database (is Docker running?).');
+  }
+  if (compose.status !== 0) {
+    console.error(
+      'Continuing without the database — anything that needs it will fail ' +
+        'until you start it: docker compose up -d'
+    );
+  }
+}
+
+/** Is the compose db service already up? Then the occupied database
+ *  port is ours and `docker compose up` is a fast no-op. */
+function composeDbRunning(): boolean {
+  const ps = spawnSync(
+    'docker',
+    ['compose', 'ps', '-q', '--status=running', 'db'],
+    { cwd: ROOT, encoding: 'utf8' }
+  );
+  return ps.status === 0 && ps.stdout.trim() !== '';
 }
 
 // The financial system also watches course.json: currency and country
