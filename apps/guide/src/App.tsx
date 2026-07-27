@@ -117,6 +117,9 @@ export function App() {
         </header>
         <div className="mx-auto max-w-5xl px-6 py-6">
           <ErrorAlert error={connectionError} className="my-3" />
+          {state?.problems.map(problem => (
+            <ErrorAlert key={problem} error={problem} className="my-3" />
+          ))}
           {state && (
             <ProjectIntro
               financialSystemUrl={state.financialSystemUrl}

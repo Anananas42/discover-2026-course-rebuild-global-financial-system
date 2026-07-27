@@ -11,27 +11,51 @@ import { describe, expect, it } from 'vitest';
 import { ALL_TASK_IDS, CURRICULUM } from './curriculum.ts';
 import { tsSources } from './ts-sources.ts';
 
-const PACKAGES = path.resolve(import.meta.dirname, '../../packages');
+const ROOT = path.resolve(import.meta.dirname, '../..');
+const PACKAGES = path.join(ROOT, 'packages');
 
-/** Every `// TASK <id>:` marker id found under packages/. */
-async function markerIds(): Promise<string[]> {
-  const ids: string[] = [];
+/** Every `// TASK <id>:` marker found under packages/ — a full-tree
+ *  walk on purpose: the servers read only the curriculum-declared files
+ *  (task-markers.ts), so this sweep is what proves no marker lives
+ *  anywhere else. Repo-relative paths with forward slashes. */
+async function markers(): Promise<{ id: string; file: string }[]> {
+  const found: { id: string; file: string }[] = [];
   for (const abs of await tsSources(PACKAGES)) {
     if (abs.endsWith('.test.ts')) continue;
     const source = await readFile(abs, 'utf8');
     for (const match of source.matchAll(/^\s*\/\/ TASK ([^\s:]+):/gm)) {
-      if (match[1]) ids.push(match[1]);
+      if (match[1]) {
+        found.push({
+          id: match[1],
+          file: path.relative(ROOT, abs).replaceAll(path.sep, '/'),
+        });
+      }
     }
   }
-  return ids;
+  return found;
 }
 
 describe('curriculum', () => {
   it('lists exactly the TASK markers that exist in packages/', async () => {
-    const markers = await markerIds();
-    expect([...markers].sort()).toEqual([...ALL_TASK_IDS].sort());
+    const ids = (await markers()).map(marker => marker.id);
+    expect([...ids].sort()).toEqual([...ALL_TASK_IDS].sort());
     // No id is claimed by two markers.
-    expect(new Set(markers).size).toBe(markers.length);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('points every code task at the file holding its marker', async () => {
+    const fileById = new Map(
+      (await markers()).map(marker => [marker.id, marker.file])
+    );
+    for (const stage of CURRICULUM) {
+      for (const task of stage.tasks) {
+        if (task.codeless) {
+          expect(task.file, `codeless task ${task.id}`).toBeUndefined();
+        } else {
+          expect(task.file, `task ${task.id}`).toBe(fileById.get(task.id));
+        }
+      }
+    }
   });
 
   it('numbers every task id after its stage', () => {

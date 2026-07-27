@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "check": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run test",
+    "diagnose": "node diagnose.ts",
     "fix": "pnpm run lint:write && pnpm run format",
     "format": "prettier . --write --cache",
     "format:check": "prettier . --check --cache",

@@ -13,11 +13,21 @@
 // (`// TASK <id>: <title>`), never here — one source of truth each way.
 // The exception is codeless tasks (`codeless: true`): with no marker,
 // their title lives on the curriculum entry.
-// curriculum.test.ts locks this list against the actual markers, so the
-// two cannot drift apart.
+// Each code task also names the file its marker lives in (`file`), and
+// the servers read exactly those files (task-markers.ts) — never a tree
+// walk that could quietly come up empty.
+// curriculum.test.ts locks this list against the actual markers — ids
+// and file pointers both — so the two cannot drift apart.
 
 export interface CurriculumTask {
   id: string;
+  /** Where the task's marker lives, relative to the repo root — set on
+   *  every code task, absent on codeless ones. The guide reads exactly
+   *  this file to find the region: discovery is pinned here instead of
+   *  found by walking the tree, so a broken walk on one machine cannot
+   *  silently empty the task list. curriculum.test.ts locks the pointer
+   *  to where the marker actually is. */
+  file?: string;
   /** Set only on codeless tasks: with no marker to carry the title, it
    *  lives here. Code tasks keep theirs in the marker. */
   title?: string;
@@ -125,6 +135,7 @@ export const CURRICULUM: CurriculumStage[] = [
     tasks: [
       {
         id: '0.1',
+        file: 'packages/warmup/src/warmup-exercises.ts',
         story:
           'Send headquarters your status report — your first line of restored code, and your first passing test.',
         steps: [
@@ -135,6 +146,7 @@ export const CURRICULUM: CurriculumStage[] = [
       },
       {
         id: '0.2',
+        file: 'packages/warmup/src/warmup-exercises.ts',
         story:
           'Add two money amounts the safe way: with a Big method, never with plus.',
         steps: [
@@ -144,6 +156,7 @@ export const CURRICULUM: CurriculumStage[] = [
       },
       {
         id: '0.3',
+        file: 'packages/warmup/src/warmup-exercises.ts',
         story:
           "Relay headquarters' status — your first method built on the Effect frame.",
         steps: [
@@ -153,6 +166,7 @@ export const CURRICULUM: CurriculumStage[] = [
       },
       {
         id: '0.4',
+        file: 'packages/warmup/src/warmup-exercises.ts',
         story: 'Refuse a negative amount with a named error.',
         steps: [
           'Read the explainer above.',
@@ -162,6 +176,7 @@ export const CURRICULUM: CurriculumStage[] = [
       },
       {
         id: '0.5',
+        file: 'packages/warmup/src/warmup-exercises.ts',
         story:
           "Read the central bank's own account balance from a repository and hand back the answer untouched.",
         steps: [
@@ -171,6 +186,7 @@ export const CURRICULUM: CurriculumStage[] = [
       },
       {
         id: '0.6',
+        file: 'packages/warmup/src/warmup-exercises.ts',
         story:
           'Ask the same repository how many banks are licensed, and hand back the number itself — an answer that arrives later, as a Promise.',
         steps: [
@@ -180,6 +196,7 @@ export const CURRICULUM: CurriculumStage[] = [
       },
       {
         id: '0.7',
+        file: 'packages/warmup/src/warmup-exercises.ts',
         story: 'Move an amount between two accounts in one transaction.',
         steps: [
           'Read the explainer above.',
@@ -189,6 +206,7 @@ export const CURRICULUM: CurriculumStage[] = [
       },
       {
         id: '0.8',
+        file: 'packages/warmup/src/warmup-exercises.ts',
         story:
           'Record a bank in the register, unless its name is already taken — read, check, write, the shape almost every task ahead has.',
         steps: [
@@ -231,6 +249,7 @@ export const CURRICULUM: CurriculumStage[] = [
       // the tasks that do something in the world.
       {
         id: TASK.refuseTakenBankName,
+        file: 'packages/central-bank/src/central-bank-service.ts',
         story:
           'Before there is a way to create a bank, build the check it needs: an error when a bank of that name already exists.',
         steps: [
@@ -240,6 +259,7 @@ export const CURRICULUM: CurriculumStage[] = [
       },
       {
         id: TASK.openBank,
+        file: 'packages/central-bank/src/central-bank-service.ts',
         story:
           'As the central bank, I license a commercial bank into the rebuilt financial system.',
         // The stage's second task spells its story out twice over: what a
@@ -284,6 +304,7 @@ export const CURRICULUM: CurriculumStage[] = [
     tasks: [
       {
         id: TASK.recordCentralBankNotice,
+        file: 'packages/commercial-bank/src/commercial-bank-service.ts',
         story:
           'As a commercial bank, I receive a notice from the central bank — it charged me interest, paid me, or forgave my debt — and I record the change on my own account, in my own database.',
         steps: [
@@ -295,6 +316,7 @@ export const CURRICULUM: CurriculumStage[] = [
       },
       {
         id: TASK.lendToBank,
+        file: 'packages/central-bank/src/central-bank-service.ts',
         story:
           'As the central bank, I create money by lending to a commercial bank: its reserves grow by the amount, and it owes the amount plus interest at the central bank interest rate.',
         steps: [
@@ -305,6 +327,7 @@ export const CURRICULUM: CurriculumStage[] = [
       },
       {
         id: TASK.receiveRepayment,
+        file: 'packages/central-bank/src/central-bank-service.ts',
         story:
           'As the central bank, I receive a repayment: the bank pays from its reserves, my claim shrinks — repaid money stops existing.',
         steps: [
@@ -315,6 +338,7 @@ export const CURRICULUM: CurriculumStage[] = [
       },
       {
         id: TASK.writeOffBankDebt,
+        file: 'packages/central-bank/src/central-bank-service.ts',
         story:
           "As the central bank, I write off the debt of a bank that cannot pay: the claim dies, my equity takes the loss, and the forgiven amount becomes the bank's gain.",
         steps: [
@@ -325,6 +349,7 @@ export const CURRICULUM: CurriculumStage[] = [
       },
       {
         id: TASK.setPolicyRate,
+        file: 'packages/central-bank/src/central-bank-service.ts',
         story:
           'As the central bank, I set the central bank interest rate: new loans to banks carry it, existing claims keep the rate they were made at.',
         steps: [
@@ -346,6 +371,7 @@ export const CURRICULUM: CurriculumStage[] = [
     tasks: [
       {
         id: TASK.transferReserves,
+        file: 'packages/central-bank/src/central-bank-service.ts',
         story:
           "As the central bank, I settle a payment between two commercial banks by moving reserves from one bank's account to the other's — never creating or destroying money.",
         steps: [
@@ -358,6 +384,7 @@ export const CURRICULUM: CurriculumStage[] = [
       },
       {
         id: TASK.payBank,
+        file: 'packages/central-bank/src/central-bank-service.ts',
         story:
           'As the central bank, I spend my interest income into a commercial bank, crediting its reserves and its equity — this is how my income returns to the system.',
         steps: [
@@ -379,6 +406,7 @@ export const CURRICULUM: CurriculumStage[] = [
     tasks: [
       {
         id: TASK.internalTransfer,
+        file: 'packages/commercial-bank/src/commercial-bank-service.ts',
         story:
           'As a commercial bank, I move money between two accounts I hold: both balances change in my own database, in one transaction — no other institution is involved.',
         steps: [
@@ -387,6 +415,7 @@ export const CURRICULUM: CurriculumStage[] = [
       },
       {
         id: TASK.receivePayment,
+        file: 'packages/commercial-bank/src/commercial-bank-service.ts',
         story:
           'As a commercial bank, I receive a payment message from another bank: who sent it, which account to credit, and the amount — nothing more — and I credit that account in my own database.',
         steps: [
@@ -397,6 +426,7 @@ export const CURRICULUM: CurriculumStage[] = [
       },
       {
         id: TASK.interbankTransfer,
+        file: 'packages/commercial-bank/src/commercial-bank-service.ts',
         story:
           'As a commercial bank, I send a payment to another bank: I record the payment and debit the sender, the central bank moves the reserves, and a message tells the other bank to credit the recipient — each bank changes only its own database.',
         steps: [
@@ -407,6 +437,7 @@ export const CURRICULUM: CurriculumStage[] = [
       },
       {
         id: TASK.payFromBank,
+        file: 'packages/commercial-bank/src/commercial-bank-service.ts',
         story:
           'As a commercial bank, I pay salaries, dividends, or rent from my own account to any IBAN in the country.',
         steps: [
@@ -428,6 +459,7 @@ export const CURRICULUM: CurriculumStage[] = [
     tasks: [
       {
         id: TASK.becomeClient,
+        file: 'packages/commercial-bank/src/commercial-bank-service.ts',
         story:
           'As a person, I walk into a bank for the first time: the system registers me under my personal id — like a birth number — and opens my first account.',
         steps: [
@@ -438,6 +470,7 @@ export const CURRICULUM: CurriculumStage[] = [
       },
       {
         id: TASK.openAccount,
+        file: 'packages/commercial-bank/src/commercial-bank-service.ts',
         story:
           'As a person, I open another account at any bank, under the personal id I already have.',
         steps: [
@@ -447,6 +480,7 @@ export const CURRICULUM: CurriculumStage[] = [
       },
       {
         id: TASK.renamePerson,
+        file: 'packages/commercial-bank/src/commercial-bank-service.ts',
         story:
           'As a person, I change my name: every account of mine is relabeled, and nothing else changes — my personal id is who I am.',
         steps: [
@@ -468,6 +502,7 @@ export const CURRICULUM: CurriculumStage[] = [
     tasks: [
       {
         id: TASK.sendMoney,
+        file: 'packages/commercial-bank/src/commercial-bank-service.ts',
         story:
           "As a person, I send money from my own account to any IBAN I was given: the system works out the bank from the IBAN itself, honors the order only from the account's holder, and turns down foreign IBANs for now.",
         steps: [
@@ -490,6 +525,7 @@ export const CURRICULUM: CurriculumStage[] = [
     tasks: [
       {
         id: TASK.lendToClient,
+        file: 'packages/commercial-bank/src/commercial-bank-service.ts',
         story:
           'As a commercial bank, I create money by lending to a client: their deposit grows by the amount, they owe the amount plus interest at my rate — allowed only while my reserves cover the required share of deposits.',
         steps: [
@@ -502,6 +538,7 @@ export const CURRICULUM: CurriculumStage[] = [
       },
       {
         id: TASK.writeOffLoan,
+        file: 'packages/commercial-bank/src/commercial-bank-service.ts',
         story:
           "As a commercial bank, I write off a loan that will not be repaid: the claim dies and my equity absorbs the loss — the borrower's money stays in circulation.",
         steps: [
@@ -523,6 +560,7 @@ export const CURRICULUM: CurriculumStage[] = [
     tasks: [
       {
         id: TASK.repayLoan,
+        file: 'packages/commercial-bank/src/commercial-bank-service.ts',
         story:
           'As a person, I repay my loan: my deposit and my debt shrink together — repaid money stops existing.',
         steps: [

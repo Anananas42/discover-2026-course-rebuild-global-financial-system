@@ -70,6 +70,10 @@ export interface GuideState {
   /** The course's stages in teaching order (apps/shared/curriculum.ts). */
   stages: CurriculumStage[];
   tasks: GuideTask[];
+  /** Code tasks that could not be loaded from the project files, one
+   *  sentence each — rendered as errors, so a broken installation says
+   *  so instead of showing a shorter task list. Empty when healthy. */
+  problems: string[];
   lastRunAt: number | null;
   course: CourseConfig;
   financialSystemUrl: string;

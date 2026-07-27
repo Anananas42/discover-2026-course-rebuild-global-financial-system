@@ -20,6 +20,8 @@ import type { CourseConfig } from '../shared/course-config.ts';
 import { CURRICULUM, taskById } from '../shared/curriculum.ts';
 import { createJsonServer, readBody, sendJson } from '../shared/http.ts';
 import { PORTS } from '../shared/ports.ts';
+import { readTaskRegions } from '../shared/task-markers.ts';
+import type { TaskRegion } from '../shared/task-markers.ts';
 import { isLiveStub } from '../shared/task-status.ts';
 import { tsSources } from '../shared/ts-sources.ts';
 import { RESULTS_FILE_NAME } from '../shared/unlocked-tasks.ts';
@@ -36,16 +38,6 @@ import type {
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
 const PORT = Number(process.env.PORT ?? PORTS.guideApi);
-
-/** A `// TASK x.y: title` region found in the sources. */
-interface TaskMarker {
-  id: string;
-  title: string;
-  file: string;
-  absFile: string;
-  line: number;
-  body: string;
-}
 
 /** The relevant subset of oxlint's JSON output. */
 interface OxlintReport {
@@ -152,8 +144,9 @@ createJsonServer(async (req, res) => {
     // throws — the moment the student replaces the
     // NotImplementedError, they have started, wherever the task sits
     // in the curriculum.
+    const { regions, faults } = await readTaskRegions(ROOT);
     const drafts = [];
-    for (const marker of await scanTasks()) {
+    for (const marker of regions) {
       const result = lastRun?.tasks[marker.id];
       const scenarios = result?.scenarios ?? [];
       drafts.push({
@@ -227,6 +220,16 @@ createJsonServer(async (req, res) => {
     const state: GuideState = {
       stages: CURRICULUM,
       tasks,
+      // Every code task is accounted for: in `tasks` above or named
+      // here. A fault sentence rendered red beats the task quietly
+      // missing from the list — the failure the old tree walk had.
+      problems: faults.map(fault =>
+        fault.reason === 'unreadable-file'
+          ? `Task ${fault.id} could not be loaded: its file ${fault.file} is missing or unreadable.`
+          : fault.reason === 'missing-marker'
+            ? `Task ${fault.id} could not be loaded: ${fault.file} no longer contains its "// TASK ${fault.id}" marker and "// ENDTASK ${fault.id}" line.`
+            : `Task ${fault.id} could not be loaded: the curriculum names no file for it.`
+      ),
       lastRunAt: lastRun?.at ?? null,
       course,
       financialSystemUrl: `http://localhost:${PORTS.financialSystem}`,
@@ -254,39 +257,6 @@ async function fileBrief(abs: string): Promise<string | undefined> {
   if (!text) return undefined;
   const period = text.indexOf('. ');
   return period === -1 ? text : text.slice(0, period + 1);
-}
-
-/** Scan TASK regions: id, title, file, line, and region body. */
-async function scanTasks(): Promise<TaskMarker[]> {
-  const tasks: TaskMarker[] = [];
-  for (const abs of await tsSources(path.join(ROOT, 'packages'))) {
-    if (abs.endsWith('.test.ts')) continue;
-    const lines = (await readFile(abs, 'utf8')).split('\n');
-    let current: TaskMarker | null = null;
-    for (const [i, line] of lines.entries()) {
-      const start = /^\s*\/\/ TASK ([^\s:]+): (.+)$/.exec(line);
-      if (start?.[1] && start[2]) {
-        current = {
-          id: start[1],
-          title: start[2].trim(),
-          file: path.relative(ROOT, abs).replaceAll(path.sep, '/'),
-          absFile: abs,
-          line: i + 1,
-          body: '',
-        };
-        continue;
-      }
-      if (current && line.trim() === `// ENDTASK ${current.id}`) {
-        tasks.push(current);
-        current = null;
-      } else if (current) {
-        current.body += `${line}\n`;
-      }
-    }
-  }
-  return tasks.sort((a, b) =>
-    a.id.localeCompare(b.id, undefined, { numeric: true })
-  );
 }
 
 /**
@@ -412,7 +382,7 @@ const LINT_MESSAGES: Record<string, string> = {
 async function lintTasks(
   taskId?: string
 ): Promise<Record<string, LintFinding[]>> {
-  const markers = (await scanTasks()).filter(
+  const markers = (await readTaskRegions(ROOT)).regions.filter(
     marker => taskId === undefined || marker.id === taskId
   );
   const files = [...new Set(markers.map(marker => marker.absFile))];
@@ -479,7 +449,7 @@ function firstErrorLine(messages: string[] | undefined): string | null {
  * Absolute paths power vscode:// links.
  */
 async function taskFiles(
-  marker: TaskMarker
+  marker: TaskRegion
 ): Promise<Pick<GuideTask, 'implement' | 'tests' | 'context'>> {
   const srcDir = path.dirname(marker.absFile);
   let tests: FileLink | null = null;
@@ -540,7 +510,7 @@ async function taskFiles(
  * the marker itself — doc, signature, and the prepared preamble. Never
  * reaches past a previous task's ENDTASK.
  */
-async function taskSurround(marker: TaskMarker): Promise<string> {
+async function taskSurround(marker: TaskRegion): Promise<string> {
   const lines = (await readFile(marker.absFile, 'utf8')).split('\n');
   const surround: string[] = [];
   for (let i = marker.line - 2; i >= 0; i--) {

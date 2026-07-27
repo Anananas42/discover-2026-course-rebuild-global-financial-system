@@ -18,6 +18,7 @@
     "apps/guide/start.ts",
     "apps/financial-system/server.ts",
     "scripts",
+    "diagnose.ts",
     "playground.ts",
     "pull-course.ts",
     "run-tests.ts",

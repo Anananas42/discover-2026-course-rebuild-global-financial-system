@@ -1,6 +1,6 @@
-// Which tasks has the student started? Scans the TASK regions in
-// packages/ and reports, per task id, whether the region still contains
-// its generated stub — `throw new NotImplementedError('<id>')`, the same
+// Which tasks has the student started? Reads the TASK regions the
+// curriculum points at (task-markers.ts) and reports, per task id,
+// whether the region still contains its generated stub — `throw new NotImplementedError('<id>')`, the same
 // contract the generator writes and the guide reads (DESIGN.md: course
 // machinery). Starting a task is half of the unlock rule the financial
 // system reveals UI by (unlocked-tasks.ts); in the reference repo no
@@ -9,10 +9,7 @@
 // Node-only (filesystem access) — imported by servers, never by browser
 // code; the browser sees the result over the API.
 
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
-
-import { tsSources } from './ts-sources.ts';
+import { readTaskRegions } from './task-markers.ts';
 
 /** Task id → true when the stub is replaced by real code. */
 export type TaskStatusMap = Record<string, boolean>;
@@ -31,24 +28,14 @@ export function isLiveStub(line: string, id: string): boolean {
 
 export async function scanTaskStatus(root: string): Promise<TaskStatusMap> {
   const status: TaskStatusMap = {};
-  for (const abs of await tsSources(path.join(root, 'packages'))) {
-    if (abs.endsWith('.test.ts')) continue;
-    const lines = (await readFile(abs, 'utf8')).split('\n');
-    let current: { id: string; stubbed: boolean } | null = null;
-    for (const line of lines) {
-      const start = /^\s*\/\/ TASK ([^\s:]+):/.exec(line);
-      if (start?.[1]) {
-        current = { id: start[1], stubbed: false };
-        continue;
-      }
-      if (!current) continue;
-      if (line.trim() === `// ENDTASK ${current.id}`) {
-        status[current.id] = !current.stubbed;
-        current = null;
-      } else if (isLiveStub(line, current.id)) {
-        current.stubbed = true;
-      }
-    }
+  // Faulted tasks stay out of the map on purpose — an unreadable region
+  // reads as "not started", never as "started", so a broken file cannot
+  // unlock anything. The guide is where the fault itself is reported.
+  const { regions } = await readTaskRegions(root);
+  for (const region of regions) {
+    status[region.id] = !region.body
+      .split('\n')
+      .some(line => isLiveStub(line, region.id));
   }
   return status;
 }
