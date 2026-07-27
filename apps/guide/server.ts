@@ -23,7 +23,6 @@ import { PORTS } from '../shared/ports.ts';
 import { readTaskRegions } from '../shared/task-markers.ts';
 import type { TaskRegion } from '../shared/task-markers.ts';
 import { isLiveStub } from '../shared/task-status.ts';
-import { tsSources } from '../shared/ts-sources.ts';
 import { RESULTS_FILE_NAME } from '../shared/unlocked-tasks.ts';
 import type {
   FileLink,
@@ -265,16 +264,34 @@ async function fileBrief(abs: string): Promise<string | undefined> {
  * task id, only the files holding that task's scenarios: a one-task run
  * then only collects those instead of the whole suite, which is most of
  * a small run's duration.
+ *
+ * Found next to the curriculum-declared task files, by plain name
+ * listing — no tree walk (task-markers.ts explains why walks are
+ * banned from student-facing paths). That is also where students add
+ * scenarios of their own: beside the code under test.
  */
 async function publicTestFiles(taskId?: string): Promise<string[]> {
-  const files: string[] = [];
-  for (const abs of await tsSources(path.join(ROOT, 'packages'))) {
-    if (!abs.endsWith('.test.ts') || abs.endsWith('.hidden.test.ts')) continue;
-    if (taskId !== undefined) {
-      const source = await readFile(abs, 'utf8');
-      if (!source.includes(`task ${taskId}:`)) continue;
+  const dirs = new Set<string>();
+  for (const stage of CURRICULUM) {
+    for (const task of stage.tasks) {
+      if (task.file !== undefined) {
+        dirs.add(path.dirname(path.join(ROOT, task.file)));
+      }
     }
-    files.push(path.relative(ROOT, abs).replaceAll(path.sep, '/'));
+  }
+  const files: string[] = [];
+  for (const dir of [...dirs].sort()) {
+    for (const name of (await readdir(dir)).sort()) {
+      if (!name.endsWith('.test.ts') || name.endsWith('.hidden.test.ts')) {
+        continue;
+      }
+      const abs = path.join(dir, name);
+      if (taskId !== undefined) {
+        const source = await readFile(abs, 'utf8');
+        if (!source.includes(`task ${taskId}:`)) continue;
+      }
+      files.push(path.relative(ROOT, abs).replaceAll(path.sep, '/'));
+    }
   }
   return files;
 }
