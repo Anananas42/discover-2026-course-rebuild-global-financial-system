@@ -47,27 +47,17 @@ describe('task 1.1: refusing a bank name that already exists', () => {
   // The bank goes into the table directly, not through the code that
   // creates banks: this task is the check on its own, and it has to be
   // gradeable before that code exists.
-  it('refuses a name a bank already has', async () => {
-    await system.centralBank.commercialBanks.create({
-      legalName: 'First Bank',
-    });
-    const error = await Effect.runPromise(
-      Effect.flip(centralBank.registerBank({ legalName: 'First Bank' }))
-    );
-    expect(error).toBeInstanceOf(DuplicateBankNameError);
-  });
 
-  it('lets through a name no bank has', async () => {
-    await system.centralBank.commercialBanks.create({
-      legalName: 'First Bank',
-    });
-    // What happens to a free name after the check is the next task's
-    // business; being turned away as a duplicate is the only outcome
-    // this task can get wrong. `either` turns that refusal into a value,
-    // so a name that gets past the check lands in the second arm
-    // whether or not there is anything yet to create the bank.
-    const outcome = await Effect.runPromise(
-      Effect.either(centralBank.registerBank({ legalName: 'Second Bank' }))
+  /** What the duplicate check makes of a name: 'refused' when
+   *  registering fails as a duplicate, 'passed the check' for anything
+   *  else. What happens past the check is the next task's business —
+   *  `either` turns the refusal into a value, and a name that gets past
+   *  the check lands in the second arm whether or not there is anything
+   *  yet to create the bank, so neither verdict ever hangs on code this
+   *  task does not write. */
+  function checkOutcome(legalName: string): Promise<string> {
+    return Effect.runPromise(
+      Effect.either(centralBank.registerBank({ legalName }))
     ).then(
       result =>
         result._tag === 'Left' && result.left instanceof DuplicateBankNameError
@@ -75,7 +65,20 @@ describe('task 1.1: refusing a bank name that already exists', () => {
           : 'passed the check',
       () => 'passed the check'
     );
-    expect(outcome).toBe('passed the check');
+  }
+
+  it('refuses a name a bank already has', async () => {
+    await system.centralBank.commercialBanks.create({
+      legalName: 'First Bank',
+    });
+    expect(await checkOutcome('First Bank')).toBe('refused');
+  });
+
+  it('lets through a name no bank has', async () => {
+    await system.centralBank.commercialBanks.create({
+      legalName: 'First Bank',
+    });
+    expect(await checkOutcome('Second Bank')).toBe('passed the check');
   });
 });
 
