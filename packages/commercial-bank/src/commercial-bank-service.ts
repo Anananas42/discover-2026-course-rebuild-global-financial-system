@@ -191,7 +191,6 @@ export class CommercialBanks implements LicensedBanks, ReceivingBank {
   ): Effect.Effect<void> {
     const { bankId, amount } = notice;
     const commercialBankDb = this.commercialBankDbFor(bankId);
-    const requireOwnAccount = this.requireOwnAccount.bind(this);
     return Effect.gen(function* () {
       // TASK 2.1: Record a notice from the central bank
       // TODO: implement task 2.1.
@@ -367,7 +366,6 @@ export class CommercialBanks implements LicensedBanks, ReceivingBank {
     const { bankId, personId } = input;
     const commercialBankDb = this.commercialBankDbFor(bankId);
     const requireBank = this.requireBank.bind(this);
-    const requireOwnAccount = this.requireOwnAccount.bind(this);
     return Effect.gen(function* () {
       // TASK 7.2: Write off a loan
       // TODO: implement task 7.2.
@@ -399,9 +397,9 @@ export class CommercialBanks implements LicensedBanks, ReceivingBank {
     | InsufficientReservesError
   > {
     const { bankId, toIban, amount } = input;
+    const commercialBankDb = this.commercialBankDbFor(bankId);
     const transfer = this.transfer.bind(this);
     const requireBank = this.requireBank.bind(this);
-    const requireOwnAccount = this.requireOwnAccount.bind(this);
     return Effect.gen(function* () {
       // TASK 4.4: Pay from the bank's own account
       // TODO: implement task 4.4.
@@ -657,12 +655,13 @@ export class CommercialBanks implements LicensedBanks, ReceivingBank {
     const { bankId } = input;
     const commercialBankDb = this.commercialBankDbFor(bankId);
     const requireBank = this.requireBank.bind(this);
-    const requireOwnAccount = this.requireOwnAccount.bind(this);
     const interestRate = this.interestRate.bind(this);
     return Effect.gen(function* () {
       const bank = yield* requireBank(bankId);
       const all = yield* Effect.promise(() => commercialBankDb.accounts.list());
-      const ownAccount = yield* requireOwnAccount(bankId);
+      const ownAccount = yield* Effect.promise(() =>
+        commercialBankDb.getOwnAccountOrError()
+      );
       const accounts = all.filter(account => account.personId !== '');
       const loans = yield* Effect.promise(() => commercialBankDb.claims.list());
       const zero = new Big(0);
@@ -855,27 +854,6 @@ export class CommercialBanks implements LicensedBanks, ReceivingBank {
     bankId: number
   ): Effect.Effect<CommercialBank, UnknownBankError> {
     return this.centralBank.findBank({ bankId });
-  }
-
-  /**
-   * The bank's own account in its own database, opened with the bank.
-   * Its absence is corrupted state (or a database created before the
-   * equity account existed — Reset cures that), so it is a defect.
-   */
-  private requireOwnAccount(bankId: number): Effect.Effect<Account> {
-    const commercialBankDb = this.commercialBankDbFor(bankId);
-    return Effect.gen(function* () {
-      const accounts = yield* Effect.promise(() =>
-        commercialBankDb.accounts.list()
-      );
-      const ownAccount = accounts.find(account => account.personId === '');
-      if (!ownAccount) {
-        return yield* Effect.dieMessage(
-          `Bank ${String(bankId)} has no own account in its database — reset the database if it was created before equity accounts existed.`
-        );
-      }
-      return ownAccount;
-    });
   }
 
   /**

@@ -295,7 +295,7 @@ export class CentralBank implements CentralBankApi {
     const centralBankDb = this.centralBankDb;
     const commercialBanks = this.connectedCommercialBanks();
     const requireReserveAccount = this.requireReserveAccount.bind(this);
-    const requireOwnAccount = this.requireOwnAccount.bind(this);
+    const getOwnAccount = this.getOwnAccount.bind(this);
     const policyRate = this.policyRate.bind(this);
     return Effect.gen(function* () {
       // TASK 2.2: Lend to a bank
@@ -368,7 +368,7 @@ export class CentralBank implements CentralBankApi {
     const commercialBanks = this.connectedCommercialBanks();
     const requireBank = this.requireBank.bind(this);
     const requireReserveAccount = this.requireReserveAccount.bind(this);
-    const requireOwnAccount = this.requireOwnAccount.bind(this);
+    const getOwnAccount = this.getOwnAccount.bind(this);
     return Effect.gen(function* () {
       // TASK 3.2: Pay a bank
       // TODO: implement task 3.2.
@@ -589,7 +589,7 @@ export class CentralBank implements CentralBankApi {
     const centralBankDb = this.centralBankDb;
     const commercialBanks = this.connectedCommercialBanks();
     const requireBank = this.requireBank.bind(this);
-    const requireOwnAccount = this.requireOwnAccount.bind(this);
+    const getOwnAccount = this.getOwnAccount.bind(this);
     return Effect.gen(function* () {
       // TASK 2.4: Write off a bank's debt
       // TODO: implement task 2.4.
@@ -648,7 +648,7 @@ export class CentralBank implements CentralBankApi {
    * write, or two screens refetching a fresh world would each create one
    * (balanceSheet reads the account raw instead).
    */
-  private requireOwnAccount(): Effect.Effect<CentralBankAccount> {
+  private getOwnAccount(): Effect.Effect<CentralBankAccount> {
     const centralBankDb = this.centralBankDb;
     return Effect.gen(function* () {
       const existing = yield* Effect.promise(() =>

@@ -9,6 +9,7 @@ import type { Kysely } from 'kysely';
 
 import type { Database } from './database-schema.ts';
 import { bankSchemaName, ensureBankDatabase } from './database-schema.ts';
+import type { Account } from './repos/account-repo.ts';
 import { AccountRepo } from './repos/account-repo.ts';
 import { ClaimRepo } from './repos/claim-repo.ts';
 import { PaymentRepo } from './repos/payment-repo.ts';
@@ -73,5 +74,25 @@ export class CommercialBankDb implements CommercialBankTx {
    */
   async createDatabase(): Promise<void> {
     await ensureBankDatabase(this.dbConnection, this.bankId);
+  }
+
+  /**
+   * The bank's own account — its equity, opened with the bank; the one
+   * row with no personal id. It lives on the handle because the handle
+   * is the bank's whole reach: whichever bank's database you hold is
+   * the only own account you can get. Its absence is corrupted state
+   * (or a database created before the equity account existed — Reset
+   * cures that), so it throws instead of returning undefined.
+   */
+  async getOwnAccountOrError(): Promise<Account> {
+    // Institutions have no personal id — the empty string marks that,
+    // and this bank's own account is the only such row in its database.
+    const [ownAccount] = await this.accounts.listByPersonId({ personId: '' });
+    if (!ownAccount) {
+      throw new Error(
+        `Bank ${String(this.bankId)} has no own account in its database — reset the database if it was created before equity accounts existed.`
+      );
+    }
+    return ownAccount;
   }
 }

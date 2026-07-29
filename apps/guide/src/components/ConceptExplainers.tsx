@@ -14,9 +14,9 @@ import { FinancialSystemLink } from './CurriculumText.tsx';
 // one method, which is the shape every task from stage 1 on has. One
 // more card sits on task 1.2: how to work in the financial system,
 // taught on the first task that happens there — 1.1 builds a check
-// with no screen of its own. Another sits on task 2.1: the helper
-// toolkit bound above every mission task, taught on the first task
-// whose solution leans on one. Every card carries a
+// with no screen of its own. Another sits on task 2.1: the toolkit
+// bound above every mission task, taught on the first task whose
+// solution leans on it. Every card carries a
 // mark-as-read button (the task-test idiom: quiet until clicked, green
 // after) — the click changes nothing but is a conscious act of having
 // read. Read-state is a display preference like the theme — per
@@ -318,12 +318,15 @@ return yield* Effect.promise(() => register.license({ legalName }));`}
     title: 'The toolkit above the task',
     body: (
       <p>
-        The lines just above the task marker are its toolkit: prebuilt helpers,
-        bound there because the solution uses them. This task has one —{' '}
-        <Code>requireOwnAccount</Code>, which looks up the bank's own account.
-        It hands back an Effect, so:{' '}
-        <Code>const ownAccount = yield* requireOwnAccount(bankId)</Code>. A
-        helper's documentation sits where it is defined, further down the file.
+        The lines just above the task marker are its toolkit: prebuilt handles
+        and helpers, bound there because the solution uses them. This task's is{' '}
+        <Code>commercialBankDb</Code> — your bank's own database — and the
+        bank's own account comes from the handle itself:{' '}
+        <Code>
+          const ownAccount = yield* Effect.promise(() =&gt;
+          commercialBankDb.getOwnAccountOrError())
+        </Code>
+        . A helper's documentation sits where it is defined.
       </p>
     ),
   },
